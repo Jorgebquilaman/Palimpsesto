@@ -27,6 +27,7 @@ export default function RevisionNorma() {
   const [formulario, setConfigurar] = useState<Partial<NormaAdminDetalle>>({})
   const [fragmentosEdit, setFragmentosEdit] = useState<Record<number, string>>({})
   const [mensaje, setMensaje] = useState('')
+  const [confirmado, setConfirmado] = useState(false)
 
   useEffect(() => {
     if (normaa && Object.keys(formulario).length === 0) {
@@ -88,6 +89,7 @@ export default function RevisionNorma() {
     },
     onSuccess: () => {
       setMensaje('Cambios guardados')
+      setConfirmado(true)
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
     },
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
@@ -345,6 +347,24 @@ export default function RevisionNorma() {
           </section>
         </section>
       </div>
+      {confirmado && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-confirmado"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setConfirmado(false)}
+        >
+          <div className="panel max-w-sm p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-verde-100 text-2xl text-verde-700" aria-hidden="true">✓</div>
+            <h2 id="titulo-confirmado" className="mb-1 text-lg font-bold">Cambios guardados</h2>
+            <p className="mb-4 text-sm text-ink-soft">El documento se guardó correctamente.</p>
+            <button autoFocus onClick={() => setConfirmado(false)} className="btn-acento">
+              Aceptar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
