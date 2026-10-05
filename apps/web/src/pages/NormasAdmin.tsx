@@ -31,7 +31,7 @@ export default function NormasAdmin() {
       <DropzoneNormas />
 
       {procesos && procesos.length > 0 && (
-        <section aria-label="Procesos de ingesta" className="panel p-4">
+        <section id="procesos" className="panel ancla-con-header scroll-mt-4 p-4" aria-label="Procesos de ingesta">
           <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Últimos procesos</h2>
           <ul className="space-y-1 text-sm">
             {procesos.slice(0, 5).map(p => (

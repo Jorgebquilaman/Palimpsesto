@@ -55,6 +55,7 @@ export default function CatalogosAdmin() {
       {data && (
         <div className="grid gap-6 lg:grid-cols-3">
           <Catalogo
+            id="tipos"
             titulo="Tipos de norma"
             filas={data.tipos}
             columnas={f => ({ codigo: f.codigo, nombre: f.nombre, alcance: f.alcance, activo: f.activo ? 'activo' : 'inactivo' })}
@@ -68,6 +69,7 @@ export default function CatalogosAdmin() {
           />
 
           <Catalogo
+            id="organos"
             titulo="Órganos emisores"
             filas={data.organos}
             columnas={f => ({ codigo: f.codigo, nombre: f.nombre, activo: f.activo ? 'activo' : 'inactivo' })}
@@ -81,6 +83,7 @@ export default function CatalogosAdmin() {
           />
 
           <Catalogo
+            id="materias"
             titulo="Materias (estructura)"
             filas={data.materias}
             columnas={f => ({ nombre: f.nombre, slug: f.slug })}
@@ -97,6 +100,7 @@ export default function CatalogosAdmin() {
 }
 
 function Catalogo<Fila extends { id: number }>({
+  id,
   titulo,
   filas,
   columnas,
@@ -105,6 +109,7 @@ function Catalogo<Fila extends { id: number }>({
   onDesactivar,
   ocupado,
 }: {
+  id: string
   titulo: string
   filas: Fila[]
   columnas: (fila: Fila) => Record<string, string>
@@ -114,8 +119,8 @@ function Catalogo<Fila extends { id: number }>({
   ocupado: boolean
 }) {
   return (
-    <section className="panel p-4">
-      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">{titulo}</h2>
+    <section id={id} className="panel ancla-con-header scroll-mt-4 p-4">
+      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>{titulo}</h2>
       <ul className="mb-4 space-y-1 text-sm">
         {filas.map(fila => {
           const valores = columnas(fila as Fila)

@@ -27,7 +27,7 @@ export default function DropzoneNormas() {
   }
 
   return (
-    <section aria-label="Carga de PDFs" className="space-y-2">
+    <section id="carga" className="ancla-con-header scroll-mt-4 space-y-2" aria-label="Carga de PDFs">
       <div
         role="button"
         tabIndex={0}

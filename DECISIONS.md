@@ -250,3 +250,13 @@ Todo con radios y colores de tokens; el contraste WCAG AA sigue pasando (15 pare
 **El hero tapaba la tarjeta de búsqueda**: el hero es `relative` y `main` estático; en CSS los elementos posicionados pintan encima de los estáticos aunque el estático venga después (por el margen negativo que los superpone). Solución: `relative z-10` en el `main` de la portada. Verificado con captura headless (Playwright) a 1280/360 px, claro y oscuro, cero scroll horizontal.
 
 **Faceta de vigencia mostraba el int del enum** (`n.vigencia::text`); ahora el SQL mapea a los nombres (`vigente`, `derogada_parcialmente`…).
+
+## Backoffice — menú de árbol a la izquierda
+
+**Sidebar `fixed inset-y-0 left-0` (pegado al borde, ancho 240px, fondo verde-950)** y contenido con `padding-left` equivalente. Estructura de árbol:
+- **Normas** (grupo): Listado y carga de PDFs · Procesos de ingesta (ancla `#procesos`)
+- **Catálogos** (grupo): Tipos de norma · Órganos emisores · Materias (anclas `#tipos/#organos/#materias`)
+- **Auditoría** y **Usuarios y roles** como hojas simples
+- Pie del menú: volver al sitio público y salir
+
+Los grupos colapsan con chevron rotado y se auto-abren si la ruta activa pertenece al grupo; la hoja activa lleva rombo `✦` y fondo crema translúcido. En móvil sigue la barra horizontal por arriba. Los anclas llevan `scroll-margin-top` para no quedar bajo nada.
