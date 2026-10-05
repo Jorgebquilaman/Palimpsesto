@@ -7,14 +7,7 @@ import {
   traerNorma,
   traerRelaciones,
 } from '../api/cliente'
-
-const ETIQUETAS_VIGENCIA: Record<string, string> = {
-  vigente: 'Vigente',
-  modificada: 'Modificada',
-  derogada: 'Derogada',
-  derogada_parcialmente: 'Derogada parcialmente',
-  deja_sin_efecto: 'Deja sin efecto',
-}
+import { Badge } from '../components/ui'
 
 const NOMBRE_TIPO: Record<string, string> = {
   encabezado: 'Encabezado',
@@ -86,52 +79,62 @@ export default function Norma() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
-      <Link to={q ? `/?q=${encodeURIComponent(q)}` : '/'} className="text-sm text-ink-faint underline hover:text-ink dark:text-ink-faint">
+      <Link to={q ? `/?q=${encodeURIComponent(q)}` : '/'} className="text-sm text-ink-faint underline hover:text-ink">
         ← Volver a la búsqueda
       </Link>
 
       {isError && (
         <div className="mt-6 panel p-6">
           <h1 className="text-lg font-bold text-derogada-texto">Norma no encontrada</h1>
-          <p className="text-sm text-derogada-texto dark:text-derogada-texto">El código {codigo} no existe o no está publicada.</p>
+          <p className="text-sm text-derogada-texto">El código {codigo} no existe o no está publicada.</p>
         </div>
       )}
 
       {norma && (
         <>
-          <header className="mt-4 panel p-5">
-            <p className="mb-2 flex flex-wrap items-center gap-2 text-xs text-ink-faint dark:text-ink-faint">
-              <span className="rounded bg-verde-100 px-2 py-0.5 font-mono dark:bg-crema-100/5">{norma.codigoNormalizado}</span>
-              <span className={`rounded px-2 py-0.5 ${estiloVigencia(norma.vigencia)}`}>
-                {ETIQUETAS_VIGENCIA[norma.vigencia] ?? norma.vigencia}
+          <header className="mt-3 panel p-5 sm:p-6">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="num-tabulares rounded bg-verde-900 px-2 py-0.5 font-mono text-[11px] font-medium text-crema-50 dark:bg-crema-100/10 dark:text-crema-100">
+                {norma.codigoNormalizado}
               </span>
+              <Badge vigencia={norma.vigencia} />
               {norma.textoOrigen === 2 && (
-                <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-800 dark:bg-amber-950 dark:text-amber-300" title="Este texto fue obtenido por OCR y puede contener errores">
+                <span
+                  className="rounded bg-barro-100 px-2 py-0.5 text-[11px] font-medium text-acento-texto"
+                  title="Este texto fue obtenido por OCR y puede contener errores"
+                >
                   texto OCR
                 </span>
               )}
-            </p>
-            <h1 className="text-2xl font-bold tracking-tight">
+            </div>
+            <h1 className="font-lectura text-2xl font-bold leading-tight tracking-tight sm:text-[26px]">
               {norma.tipo.nombre} N° {norma.numero}/{norma.anio} — {norma.titulo}
             </h1>
-            <p className="mt-2 text-sm text-ink-soft">
-              {norma.organo.nombre} · sanción {norma.fechaSancion}
-              {norma.fechaPublicacion && <> · publicación {norma.fechaPublicacion}</>}
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-ink-soft">
+              <span className="font-medium text-ink">{norma.organo.nombre}</span>
+              <span aria-hidden="true" className="text-ink-faint">·</span>
+              sanción {norma.fechaSancion}
+              {norma.fechaPublicacion && (
+                <>
+                  <span aria-hidden="true" className="text-ink-faint">·</span>
+                  publicación {norma.fechaPublicacion}
+                </>
+              )}
             </p>
-            <div className="no-print mt-3 flex flex-wrap gap-2">
+            <div className="no-print mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
               <button onClick={copiarCita} className="btn-primario">
-                Copiar cita
+                <span aria-hidden="true">❝</span> Copiar cita
               </button>
               <button onClick={() => copiar(`${window.location.origin}/normas/${norma.codigoNormalizado}`, 'Enlace permanente copiado')}
                 className="btn-secundario">
-                Copiar enlace permanente
+                <span aria-hidden="true">⌁</span> Enlace permanente
               </button>
               <a href={`/api/v1/normas/${norma.codigoNormalizado}/pdf`} download={norma.codigoNormalizado + '.pdf'}
                 className="btn-secundario">
-                Descargar PDF
+                <span aria-hidden="true">⇩</span> Descargar PDF
               </a>
               <button onClick={() => window.print()} className="btn-secundario">
-                Imprimir
+                <span aria-hidden="true">⎙</span> Imprimir
               </button>
             </div>
             <div aria-live="polite">
@@ -139,17 +142,17 @@ export default function Norma() {
             </div>
           </header>
 
-          <div className="no-print mt-4">
-            <div role="tablist" aria-label="Secciones de la norma" className="flex gap-1 border-b border-line">
+          <div className="no-print mt-6">
+            <div role="tablist" aria-label="Secciones de la norma" className="flex gap-5 border-b border-line">
               {PESTANAS.map(([valor, etiqueta]) => (
                 <button
                   key={valor}
                   role="tab"
                   aria-selected={pestana === valor}
                   onClick={() => setPestana(valor)}
-                  className={`rounded-t-lg px-4 py-2 text-sm font-medium ${pestana === valor
-                    ? 'border border-b-0 border-line bg-surface text-acento-texto'
-                    : 'text-ink-faint hover:text-ink'}`}
+                  className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm font-medium transition-colors ${pestana === valor
+                    ? 'border-acento text-acento-texto'
+                    : 'border-transparent text-ink-faint hover:text-ink'}`}
                 >
                   {etiqueta}
                 </button>
@@ -160,7 +163,7 @@ export default function Norma() {
           <div className="mt-4">
             {pestana === 'texto' && texto && (
               <div className="grid gap-4 md:grid-cols-[260px_1fr]">
-                <aside aria-label="Índice de artículos" className="panel no-print max-h-[70vh] overflow-auto p-3">
+                <aside aria-label="Índice de artículos" className="no-print sticky top-24 max-h-[75vh] overflow-auto self-start rounded-md border border-line bg-surface p-3 shadow-xs">
                   <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Índice</h3>
                   <ol className="space-y-1 text-sm">
                     {texto.fragmentos.map(f => (
@@ -258,7 +261,7 @@ export default function Norma() {
             )}
           </div>
 
-          <p className="mt-6 text-xs text-ink-faint dark:text-ink-faint">
+          <p className="mt-6 text-xs text-ink-faint">
             El PDF firmado es el documento oficial; el texto en pantalla es una copia de lectura.
           </p>
         </>
@@ -410,13 +413,3 @@ function LienzosPdf({
   )
 }
 
-function estiloVigencia(vigencia: string): string {
-  const estilos: Record<string, string> = {
-    vigente: 'bg-verde-100 text-vigente-texto',
-    modificada: 'bg-crema-200 text-modificada-texto',
-    derogada: 'bg-barro-100 text-derogada-texto',
-    derogada_parcialmente: 'bg-barro-100 text-derogada-texto',
-    deja_sin_efecto: 'bg-verde-100 text-ink-soft',
-  }
-  return estilos[vigencia] ?? 'bg-verde-100 text-ink-soft'
-}

@@ -43,7 +43,7 @@ export default function DropzoneNormas() {
         className={`flex flex-col items-center justify-center rounded-md border-2 border-dashed p-8 text-center transition-colors ${
           arrastrando
             ? 'border-barro-500 bg-barro-100'
-            : 'border-barro-300 bg-surface'
+            : 'border-line bg-surface hover:border-barro-300 hover:bg-crema-50'
         }`}
       >
         <input ref={input} type="file" accept="application/pdf" multiple className="sr-only"

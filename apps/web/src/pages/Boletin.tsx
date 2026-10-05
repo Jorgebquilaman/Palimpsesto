@@ -46,7 +46,7 @@ export default function Boletin() {
   })
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-6">
+    <main className="mx-auto max-w-4xl px-4 py-8">
       <Link to="/" className="text-sm text-ink-faint underline">← Volver</Link>
       <h1 className="mt-3 text-2xl font-bold">Boletín Oficial</h1>
 
@@ -55,11 +55,12 @@ export default function Boletin() {
           {(listado ?? []).map(b => (
             <li key={b.id}>
               <Link to={`/boletin?numero=${encodeURIComponent(b.numero)}`}
-                className={`block rounded-lg border px-3 py-2 text-sm ${numero === b.numero
-                  ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950'
-                  : 'border-line bg-surface hover:bg-verde-50'}`}>
+                className={`flex items-baseline justify-between rounded-sm border px-3 py-2.5 transition-colors ${numero === b.numero
+                  ? 'border-acento bg-barro-100/60'
+                  : 'border-line bg-surface hover:border-verde-300 hover:bg-verde-50'}`}>
                 <span className="font-medium">N° {b.numero}</span>
-                <span className="ml-2 text-xs text-ink-faint">{b.fechaPublicacion}</span>
+                <span className="num-tabulares text-xs text-ink-faint">{b.fechaPublicacion}</span>
+
               </Link>
             </li>
           ))}

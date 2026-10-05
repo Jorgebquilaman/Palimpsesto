@@ -209,3 +209,17 @@ Un contenedor con SOLO red interna no recibe `PortBindings` en el host (Docker l
 **Print limpio**: `@media print` remueve texturas, sombras y elementos `.no-print` (cabecera, tabs, índice, acciones); `.lectura` cae a 12pt a ancho completo.
 
 **Adorno de línea única** (`OrnamentoLinea`): trazo original, un gradiente de terracota que se disipa; usado en el hero y el estado vacío. Rombo `✦` como detalle de marca en títulos de sección, logo placeholder, sidebar y anclas al hover.
+
+## Diseño — pase "moderna y limpia"
+
+**Portada**: hero con ornamento de línea, título Fraunces más grande con interlineado 1.05, y tarjeta de búsqueda elevada que flota sobre el hero (-mt-8/12). El campo de texto es grande (h-12) con botón pegado; modo de búsqueda como control segmentado (radiogroup con pills, mejor que radios crudos); N°/Año/Filtros en una fila secundaria.
+
+**Resultados**: tarjetas p-5 con código como chip verde-900, título en Source Serif con subrayado terracota solo al hover, metadatos con separadores finos, y snippet con barra lateral durazno (`border-l-2 border-barro-300`) en vez de solo fondo.
+
+**Facetas**: de panels a listas minimal con rombo de selección, alineadas con la columna de resultados.
+
+**Detalle de norma**: cabecera jerárquica (código → título serif → metadatos), acciones con iconos tipográficos separadas por borde, pestañas estilo subrayado (`border-b-2` con acento) en vez de "carpetas", índice lateral sticky.
+
+**Boletín**: items de listado con fecha a la derecha (baseline), borde acento al seleccionar.
+
+Todo con radios y colores de tokens; el contraste WCAG AA sigue pasando (15 pares) porque el pase no tocó los pares de texto/fondo validados.

@@ -157,7 +157,7 @@ export default function RevisionNorma() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section aria-label="PDF original" className="panel p-4">
-          <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">PDF original (documento oficial, inmutable)</h2>
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>PDF original (documento oficial, inmutable)</h2>
           {norma.archivos.find(a => a.rol === 'original') ? (
             <embed src={`/api/v1/admin/normas/${norma.id}/pdf-admin`} type="application/pdf" className="h-[70vh] w-full rounded-lg" />
           ) : (
@@ -171,7 +171,7 @@ export default function RevisionNorma() {
             onSubmit={(e) => { e.preventDefault(); guardar.mutate() }}
             className="panel p-4"
           >
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">Metadatos (sugeridos por el sistema: corregí antes de publicar)</h2>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Metadatos (sugeridos: corregí antes de publicar)</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <label className="col-span-2 block">
                 Título
@@ -243,7 +243,7 @@ export default function RevisionNorma() {
           </form>
 
           <section aria-label="Relaciones" className="panel p-4">
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">Relaciones</h2>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Relaciones</h2>
             <FormularioRelacion normaId={norma.id} onQueCambio={(msg) => setMensaje(msg)} clienteWebsocketRefresco={cliente} />
             {relaciones && (relaciones.origen.length > 0 || relaciones.destino.length > 0) ? (
               <ul className="mt-3 space-y-1 text-sm">
@@ -272,7 +272,7 @@ export default function RevisionNorma() {
           </section>
 
           <section aria-label="Fragmentos de texto" className="panel p-4">
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">Fragmentos (corrección manual)</h2>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Fragmentos (corrección manual)</h2>
             <div className="max-h-[45vh] space-y-3 overflow-auto">
               {norma.fragmentos.map(f => (
                 <label key={f.orden} className="block text-sm">

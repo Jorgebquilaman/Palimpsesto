@@ -9,7 +9,7 @@ export function Marca({ compacta = false }: { compacta?: boolean }) {
       ) : (
         <span
           aria-hidden="true"
-          className="grid h-8 w-8 place-items-center rounded-sm bg-acento font-display text-lg text-on-primary bg-primario"
+          className="grid h-8 w-8 place-items-center rounded-sm bg-primario font-display text-lg text-sobre-primario"
         >
           ✦
         </span>
