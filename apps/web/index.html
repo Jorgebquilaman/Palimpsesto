@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Digesto Normativo IUPA</title>
+    <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
+    <link rel="apple-touch-icon" href="/logo-mark.svg" />
     <script>
       (function () {
         try {
@@ -11,7 +13,6 @@
           oscuro();
           function oscuro() {
             var modoOscuro = tema === 'oscuro'
-              || (!tema && window.matchMedia('(prefers-color-scheme: dark)').matches)
             if (modoOscuro) {
               document.documentElement.classList.add('dark')
             }

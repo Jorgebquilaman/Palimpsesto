@@ -32,6 +32,7 @@ public class BoletinesController : ControllerBase
                 b.Numero,
                 b.FechaPublicacion,
                 b.Observaciones,
+                TotalNormas = _db.Normas.Count(n => n.BoletinId == b.Id),
             })
             .ToListAsync(ct);
 

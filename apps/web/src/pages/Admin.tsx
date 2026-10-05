@@ -99,7 +99,8 @@ export function LayoutAdmin() {
     <div className="sin-textura min-h-screen bg-crema-50">
       <aside className="no-print fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-y-auto bg-verde-950 text-crema-100">
         <Link to="/" className="mb-2 mt-4 flex items-center gap-2 px-4 font-display text-lg font-semibold">
-          <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-sm bg-acento text-sm text-verde-950">✦</span>
+          <img src="/logo-mark-mono.svg" alt="" width={32} height={32}
+            className="h-8 w-8 text-crema-100" aria-hidden="true" />
           Backoffice
         </Link>
         <p className="mb-4 px-4 text-xs text-crema-100/50">{sesion.nombre} · {sesion.rol}</p>
@@ -116,6 +117,7 @@ export function LayoutAdmin() {
             <Hoja ruta="/admin/catalogos#materias" activa={false}>Materias</Hoja>
           </Rama>
 
+          <HojaSimple ruta="/admin/boletines" icono="▣" activa={ruta === '/admin/boletines'}>Boletines oficiales</HojaSimple>
           <HojaSimple ruta="/admin/ai" icono="✦" activa={ruta === '/admin/ai'}>Inteligencia artificial</HojaSimple>
           <HojaSimple ruta="/admin/auditoria" icono="❝" activa={ruta === '/admin/auditoria'}>Auditoría</HojaSimple>
           <HojaSimple ruta="/admin/usuarios" icono="◉" activa={ruta === '/admin/usuarios'}>Usuarios y roles</HojaSimple>

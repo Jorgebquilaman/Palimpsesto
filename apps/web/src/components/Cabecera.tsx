@@ -35,12 +35,8 @@ export function Cabecera() {
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Link to="/" aria-label={`Ir al inicio — ${nombre}`}>
           <span className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="grid h-9 w-9 place-items-center rounded-sm bg-primario font-display text-lg text-sobre-primario"
-            >
-              ✦
-            </span>
+            <img src="/logo-mark.svg" alt="" width={36} height={36}
+              className="h-9 w-9 rounded-sm" aria-hidden="true" />
             <span className="font-display text-lg font-semibold tracking-tight text-ink">
               {nombre}
             </span>
