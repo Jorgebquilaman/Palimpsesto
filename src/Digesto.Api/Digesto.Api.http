@@ -1,0 +1,6 @@
+@Digesto.Api_HostAddress = http://localhost:5106
+
+GET {{Digesto.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

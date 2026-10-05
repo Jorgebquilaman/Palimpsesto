@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Digesto.Api/Digesto.Api.csproj" />
+    <Project Path="src/Digesto.Application/Digesto.Application.csproj" />
+    <Project Path="src/Digesto.Domain/Digesto.Domain.csproj" />
+    <Project Path="src/Digesto.Infrastructure/Digesto.Infrastructure.csproj" />
+    <Project Path="src/Digesto.Worker/Digesto.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Digesto.Tests/Digesto.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-digesto}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-digesto_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-digesto}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-digesto} -d ${POSTGRES_DB:-digesto}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    environment:
+      ConnectionStrings__Digesto: Host=postgres;Port=5432;Database=${POSTGRES_DB:-digesto};Username=${POSTGRES_USER:-digesto};Password=${POSTGRES_PASSWORD:-digesto_dev}
+      FileStorage__Root: /data/archivos
+      ASPNETCORE_URLS: http://+:8080
+    ports:
+      - "5008:8080"
+    volumes:
+      - archivos:/data/archivos
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    environment:
+      ConnectionStrings__Digesto: Host=postgres;Port=5432;Database=${POSTGRES_DB:-digesto};Username=${POSTGRES_USER:-digesto};Password=${POSTGRES_PASSWORD:-digesto_dev}
+      FileStorage__Root: /data/archivos
+    volumes:
+      - archivos:/data/archivos
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  archivos:
