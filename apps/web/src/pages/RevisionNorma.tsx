@@ -54,25 +54,38 @@ export default function RevisionNorma() {
     return v === undefined || v === null ? '' : String(v)
   }
 
-  const guardar = useMutation({
-    mutationFn: () => pedirAdmin(`/admin/normas/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        titulo: formulario.titulo ?? normaa?.titulo,
-        numero: formulario.numero ?? normaa?.numero,
-        anio: formulario.anio ?? normaa?.anio,
-        sufijo: formulario.sufijo ?? null,
-        tipoNormaId: formulario.tipoNormaId ?? normaa?.tipoNormaId,
-        organoEmisorId: formulario.organoEmisorId ?? normaa?.organoEmisorId,
-        fechaSancion: formulario.fechaSancion ?? normaa?.fechaSancion,
-        fechaPublicacion: formulario.fechaPublicacion ?? null,
-        resumen: formulario.resumen ?? null,
-        palabrasClave: formulario.palabrasClave ?? undefined,
-        expediente: formulario.expediente ?? null,
-        visibilidad: formulario.visibilidad ?? undefined,
-        vigencia: formulario.vigencia ?? undefined,
-      }),
-    }),
+  const guardarTodo = useMutation({
+    mutationFn: async () => {
+      await pedirAdmin(`/admin/normas/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          titulo: formulario.titulo ?? normaa?.titulo,
+          numero: formulario.numero ?? normaa?.numero,
+          anio: formulario.anio ?? normaa?.anio,
+          sufijo: formulario.sufijo ?? null,
+          tipoNormaId: formulario.tipoNormaId ?? normaa?.tipoNormaId,
+          organoEmisorId: formulario.organoEmisorId ?? normaa?.organoEmisorId,
+          fechaSancion: formulario.fechaSancion ?? normaa?.fechaSancion,
+          fechaPublicacion: formulario.fechaPublicacion ?? null,
+          resumen: formulario.resumen ?? null,
+          palabrasClave: formulario.palabrasClave ?? undefined,
+          expediente: formulario.expediente ?? null,
+          visibilidad: formulario.visibilidad ?? undefined,
+          vigencia: formulario.vigencia ?? undefined,
+        }),
+      })
+      if (normaa && Object.keys(fragmentosEdit).length > 0) {
+        await pedirAdmin(`/admin/normas/${id}/fragmentos`, {
+          method: 'PUT',
+          body: JSON.stringify(normaa.fragmentos.map(f => ({
+            orden: f.orden,
+            texto: fragmentosEdit[f.orden] ?? f.texto,
+            html: null,
+            etiqueta: f.etiqueta,
+          }))),
+        })
+      }
+    },
     onSuccess: () => {
       setMensaje('Cambios guardados')
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
@@ -118,16 +131,6 @@ export default function RevisionNorma() {
       setMensaje(`AI completó la información. ${campos}${relaciones}`)
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
       void cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] })
-    },
-    onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
-  })
-
-  const guardarFragmentos = useMutation({
-    mutationFn: (fragmentos: { orden: number; texto: string; html: string | null; etiqueta: string | null }[]) =>
-      pedirAdmin(`/admin/normas/${id}/fragmentos`, { method: 'PUT', body: JSON.stringify(fragmentos) }),
-    onSuccess: () => {
-      setMensaje('Fragmentos guardados')
-      void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
     },
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
   })
@@ -219,7 +222,7 @@ export default function RevisionNorma() {
         <section aria-label="Metadatos sugeridos" className="space-y-3">
 
           <form
-            onSubmit={(e) => { e.preventDefault(); guardar.mutate() }}
+            onSubmit={(e) => { e.preventDefault(); guardarTodo.mutate() }}
             className="panel p-4"
           >
             <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Metadatos (sugeridos: corregí antes de publicar)</h2>
@@ -288,8 +291,8 @@ export default function RevisionNorma() {
                   className="mt-1 campo" />
               </label>
             </div>
-            <button type="submit" className="mt-3 rounded-lg bg-blue-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">
-              Guardar metadatos
+            <button type="submit" disabled={guardarTodo.isPending} className="btn-acento mt-3">
+              <span aria-hidden="true">✦</span> {guardarTodo.isPending ? 'Guardando…' : 'Guardar cambios'}
             </button>
           </form>
 
@@ -331,7 +334,7 @@ export default function RevisionNorma() {
                     {f.orden}. {f.etiqueta ?? f.tipo}{f.paginaDesde ? ` (pág. ${f.paginaDesde})` : ''}
                   </span>
                   <textarea
-                    value={f.texto}
+                    value={fragmentosEdit[f.orden] ?? f.texto}
                     rows={3}
                     onChange={(e) => setFragmentosEdit(prev => ({ ...prev, [f.orden]: e.target.value }))}
                     className="mt-1 campo"
@@ -339,18 +342,6 @@ export default function RevisionNorma() {
                 </label>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => guardarFragmentos.mutate(norma.fragmentos.map(f => ({
-                orden: f.orden,
-                texto: fragmentosEdit[f.orden] ?? f.texto,
-                html: null,
-                etiqueta: f.etiqueta,
-              })))}
-              className="mt-3 rounded-lg bg-blue-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-800"
-            >
-              Guardar fragmentos
-            </button>
           </section>
         </section>
       </div>
