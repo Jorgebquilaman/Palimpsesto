@@ -2,28 +2,50 @@ const BASE = '/api/v1'
 
 const TOKEN_CLAVE = 'digesto-accessToken'
 
+function leerClave(clave: string): string | null {
+  try {
+    return window.localStorage.getItem(clave)
+  } catch {
+    return null
+  }
+}
+
+function escribirClave(clave: string, valor: string) {
+  try {
+    window.localStorage.setItem(clave, valor)
+  } catch {
+  }
+}
+
+function borrarClave(clave: string) {
+  try {
+    window.localStorage.removeItem(clave)
+  } catch {
+  }
+}
+
 export function tokenActual(): string | null {
-  return localStorage.getItem(TOKEN_CLAVE)
+  return leerClave(TOKEN_CLAVE)
 }
 
 export function guardarToken(token: string, nombre: string, rol: string) {
-  localStorage.setItem(TOKEN_CLAVE, token)
-  localStorage.setItem('digestoNombre', nombre)
-  localStorage.setItem('digestoRol', rol)
+  escribirClave(TOKEN_CLAVE, token)
+  escribirClave('digestoNombre', nombre)
+  escribirClave('digestoRol', rol)
 }
 
 export function cerrarSesion() {
-  localStorage.removeItem(TOKEN_CLAVE)
-  localStorage.removeItem('digestoNombre')
-  localStorage.removeItem('digestoRol')
+  borrarClave(TOKEN_CLAVE)
+  borrarClave('digestoNombre')
+  borrarClave('digestoRol')
 }
 
 export function sesionActual(): { nombre: string; rol: string } | null {
-  const token = localStorage.getItem(TOKEN_CLAVE)
+  const token = leerClave(TOKEN_CLAVE)
   if (!token) return null
   return {
-    nombre: localStorage.getItem('digestoNombre') ?? '',
-    rol: localStorage.getItem('digestoRol') ?? '',
+    nombre: leerClave('digestoNombre') ?? '',
+    rol: leerClave('digestoRol') ?? '',
   }
 }
 

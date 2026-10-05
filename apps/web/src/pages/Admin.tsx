@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { Link, Navigate, Outlet } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { cerrarSesion, guardarToken, sesionActual } from '../api/adminApi'
 
 export default function Admin() {
@@ -15,7 +16,6 @@ function Login() {
   const [contrasenia, setContrasenia] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
-  const navegar = useNavigate()
 
   const iniciar = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,13 +27,19 @@ function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario, contrasenia }),
       })
+      if (respuesta.status === 423 || respuesta.status === 429) {
+        setError('Cuenta bloqueada por intentos fallidos; esperá unos minutos.')
+        return
+      }
       if (!respuesta.ok) {
         setError('Usuario o contraseña incorrectos')
         return
       }
       const datos = await respuesta.json()
       guardarToken(datos.token, datos.nombre, datos.rol)
-      navegar('/admin/normas')
+      window.location.assign('/admin/normas')
+    } catch {
+      setError('No se pudo conectar con el servidor. Verificá que el sistema esté corriendo.')
     } finally {
       setCargando(false)
     }
@@ -54,7 +60,7 @@ function Login() {
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800" />
         </label>
         {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        <button disabled={cargando}
+        <button type="submit" disabled={cargando}
           className="w-full rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
           {cargando ? 'Ingresando…' : 'Ingresar'}
         </button>
