@@ -20,6 +20,20 @@ public class CatalogosAdminController : ControllerBase
         _db = db;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Todo(CancellationToken ct)
+    {
+        var tipos = await _db.TiposNorma.AsNoTracking().OrderBy(t => t.Codigo).ToListAsync(ct);
+        var organos = await _db.OrganosEmisores.AsNoTracking().OrderBy(o => o.Codigo).ToListAsync(ct);
+        var materias = await _db.Materias.AsNoTracking().OrderBy(m => m.Nombre).ToListAsync(ct);
+        return Ok(new
+        {
+            tipos = tipos.Select(t => new { t.Id, t.Codigo, t.Nombre, t.Alcance, t.Activo }),
+            organos = organos.Select(o => new { o.Id, o.Codigo, o.Nombre, o.PadreId, o.Activo }),
+            materias = materias.Select(m => new { m.Id, m.Nombre, m.Slug, m.PadreId }),
+        });
+    }
+
     [HttpGet("tipos")]
     public async Task<IActionResult> GetTipos(CancellationToken ct) =>
         Ok(await _db.TiposNorma.AsNoTracking().OrderBy(t => t.Codigo).ToListAsync(ct));

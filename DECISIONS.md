@@ -118,3 +118,17 @@ La búsqueda previa (`?q=`) y la búsqueda dentro de la norma marcan coincidenci
 
 **2026-10-04 — `dangerouslySetInnerHTML` limitado a fragmentos: cada artículo lleva `id="art-N"` y `data-page`, generados por el worker.**
 El índice lateral ancla a esos ids; el orden de los fragmentos es el del documento.
+
+## Hito 5 — Backoffice
+
+**2026-10-04 — El PDF de revisión se sirve por un endpoint admin aparte (`/admin/normas/{id}/pdf`).**
+El endpoint público `/normas/{codigo}/pdf` exige `publicada`/`archivada`; un borrador en revisión necesita su PDF original a la vista sin publicarlo.
+
+**2026-10-04 — `numero = 0` en borradores + índice único parcial.**
+La pantalla de revisión confirma el número real; antes de eso el borrador no participa en la unicidad (índice parcial `WHERE numero > 0`). El intento de guardar metadatos que choque con otra norma devuelve 409 con mensaje claro.
+
+**2026-10-04 — Publicación con transición explícita.**
+Solo `en_revision → publicada`; despublicar deja `en_revision` (nunca borra el estado que permitiría reproceso). Cada cambio escribe en `auditoria` con antes/después serializados (jsonb text).
+
+**2026-10-04 — Los roles `editor` y `admin` comparten backoffice; `admin` administra usuarios/catálogos.**
+403 real para editor en `/admin/usuarios` y auditoría. El seed solo crea admin; el resto de usuarios se generan desde el backoffice.
