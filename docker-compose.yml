@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    command: postgres -c shared_buffers=256MB -c effective_cache_size=768MB -c maintenance_work_mem=128MB -c random_page_cost=1.1
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-digesto}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-digesto_dev}
@@ -11,6 +12,7 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - backend
+      - frontend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-digesto} -d ${POSTGRES_DB:-digesto}"]
       interval: 5s
@@ -50,14 +52,13 @@ services:
       Ingesta__UmbralCaracteresPagina: ${INGESTA_UMBRAL_CARACTERES_PAGINA:-100}
     volumes:
       - archivos:/data/archivos
-      - tmp_ocr:/tmp
+    tmpfs:
+      - /tmp:size=512m
     networks:
       - backend
     mem_limit: 2g
     cpus: 2.0
     pids_limit: 256
-    tmpfs:
-      - /tmp:size=512m
     security_opt:
       - no-new-privileges:true
     depends_on:
@@ -78,7 +79,6 @@ services:
 volumes:
   pgdata:
   archivos:
-  tmp_ocr:
 
 networks:
   backend:

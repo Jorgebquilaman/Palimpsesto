@@ -3,6 +3,7 @@
     <Project Path="src/Digesto.Api/Digesto.Api.csproj" />
     <Project Path="src/Digesto.Application/Digesto.Application.csproj" />
     <Project Path="src/Digesto.Domain/Digesto.Domain.csproj" />
+    <Project Path="src/Digesto.Herramientas/Digesto.Herramientas.csproj" />
     <Project Path="src/Digesto.Infrastructure/Digesto.Infrastructure.csproj" />
     <Project Path="src/Digesto.Worker/Digesto.Worker.csproj" />
   </Folder>

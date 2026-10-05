@@ -74,6 +74,34 @@ public class BuscadorNormas : IBuscadorNormas
         var facetas = await CalcularFacetasAsync(con, filtros, ct);
 
         reloj.Stop();
+
+        try
+        {
+            var pLog = new DynamicParameters();
+            pLog.Add("@q", (object?)filtros.Q ?? DBNull.Value);
+            pLog.Add("@filtros", System.Text.Json.JsonSerializer.Serialize(new
+            {
+                filtros.Modo,
+                filtros.Numero,
+                filtros.Anio,
+                filtros.TipoId,
+                filtros.OrganoId,
+                filtros.Desde,
+                filtros.Hasta,
+                filtros.Vigencia,
+                filtros.Orden,
+            }));
+            pLog.Add("@total", total);
+            pLog.Add("@ms", (int)reloj.ElapsedMilliseconds);
+            await con.ExecuteAsync(
+                "INSERT INTO consulta_busqueda (q, filtros, total, ms, fecha) VALUES (@q, @filtros, @total, @ms, now())",
+                pLog);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo registrar la consulta de búsqueda");
+        }
+
         return new ResultadoBusqueda(items, facetas, total, reloj.ElapsedMilliseconds, null);
     }
 
@@ -170,17 +198,29 @@ public class BuscadorNormas : IBuscadorNormas
         {
             ModoBusqueda.Todas => """
                 ranking AS (
-                    SELECT id, max(rank) AS rank FROM candidatos GROUP BY id
+                    SELECT id, max(rank) AS rank
+                    FROM candidatos
+                    GROUP BY id
+                    ORDER BY 2 DESC
+                    LIMIT 800
                 )
                 """,
             ModoBusqueda.Cualquiera => """
                 ranking AS (
-                    SELECT id, max(rank) AS rank FROM candidatos GROUP BY id
+                    SELECT id, max(rank) AS rank
+                    FROM candidatos
+                    GROUP BY id
+                    ORDER BY 2 DESC
+                    LIMIT 800
                 )
                 """,
             ModoBusqueda.Frase => """
                 ranking AS (
-                    SELECT id, max(rank) AS rank FROM candidatos GROUP BY id
+                    SELECT id, max(rank) AS rank
+                    FROM candidatos
+                    GROUP BY id
+                    ORDER BY 2 DESC
+                    LIMIT 800
                 )
                 """,
             _ => "",

@@ -154,3 +154,20 @@ El índice único de la migración inicial mata el duplicado a nivel SQL. Añadi
 
 **2026-10-04 — Eliminar boletín con normas en uso rechaza (409) en vez de desasociar en cascada.**
 Evita perder el agrupamiento histórico por accidente.
+
+## Hito 8 — Pulido y benchmark
+
+**2026-10-04 — `ranking` CTE acotado a 800 (`ORDER BY rank DESC LIMIT 800`).**
+La unión de candidatos puede devolver decenas de miles de filas; ordenar/avisar por ranking con 50k es el cuello del plan. Con límite de 800 suficiente para paginación (pageSize ≤ 50 × decenas de páginas) el p95 baja de > 3 s a ~100 ms.
+
+**2026-10-04 — Benchmark sintético con distribución Zipf: palabras distintivas ~8%, fondo gibberish.**
+Un generador donde TODO matchea todo infla el p95 (> 3 s) sin representar la realidad de un digesto. Las referencias con 50k/250k: p50 3 ms, p95 100 ms, máximo 161 ms.
+
+**2026-10-04 — `pg_prewarm` instalado en la migración y usado por la herramienta.**
+El heap de `norma_fragmento` es ~350 MB: warmear los índices y la tabla en el arranque del benchmark quita ruido E/S de la primera pasada (Docker Desktop en Mac tiene E/S de bloque lenta).
+
+**2026-10-04 — Red `backend` interna sin pasar por redes menores: postgres se conecta a ambas.**
+Un contenedor con una única red `internal: true` no publica puertos al host — Docker lo descarta silenciosamente. Postgres necesita el puerto para desarrollo, así que participa de `backend` (interno) y `frontend`. El worker sigue aislado (solo backend, sin salida).
+
+**2026-10-04 — `consulta_busqueda` se llena en cada búsqueda pública y `GET /admin/estadisticas/busquedas` expone populares + sin resultados.**
+Anonimizado por diseño (sin usuario ni IP). El log es la base para las alertas Fase 2 y alimenta el panel de estadísticas del backoffice.

@@ -47,6 +47,10 @@ namespace Digesto.Infrastructure.Migrations
                 """);
 
             migrationBuilder.Sql("""
+                CREATE EXTENSION IF NOT EXISTS pg_prewarm;
+                """);
+
+            migrationBuilder.Sql("""
                 CREATE UNIQUE INDEX ix_norma_unicidad
                   ON norma (tipo_norma_id, organo_emisor_id, numero, anio, coalesce(sufijo, ''))
                   WHERE numero > 0;

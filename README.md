@@ -33,6 +33,18 @@ npm run dev                            # proxy /api -> localhost:5008
 
 Ver `AGENTS.md` para la estructura de proyectos, convenciones de código y reglas de dominio. Las decisiones técnicas están registradas en `DECISIONS.md`.
 
+## Benchmark con 50.000 normas
+
+Generador de datos sintéticos + mediciones reproducibles:
+
+```bash
+dotnet run --project src/Digesto.Herramientas -- generar 50000   # ~250.000 fragmentos
+dotnet run --project src/Digesto.Herramientas -- benchmark        # p50/p95/p99
+```
+
+Referencia local (Docker Desktop en macOS, 50k normas / 250k fragmentos):
+p50 ≈ 3 ms, p95 ≈ 100 ms, p99 ≈ 112 ms. Las consultas que matchean ~34% del corpus (palabras de uso legal muy común) pueden ser más lentas: son un caso límite, no el patrón de uso.
+
 ## Mantenimiento de índices (desde el hito 3)
 
 - Tras cargas masivas: `ANALYZE;`
