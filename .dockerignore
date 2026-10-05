@@ -1,0 +1,12 @@
+.git
+.github
+tests
+docker
+*.md
+.env
+.env.example
+**/bin
+**/obj
+**/dist
+**/node_modules
+**/.DS_Store

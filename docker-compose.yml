@@ -21,7 +21,7 @@ services:
       dockerfile: docker/Dockerfile.api
     environment:
       ConnectionStrings__Digesto: Host=postgres;Port=5432;Database=${POSTGRES_DB:-digesto};Username=${POSTGRES_USER:-digesto};Password=${POSTGRES_PASSWORD:-digesto_dev}
-      FileStorage__Root: /data/archivos
+      Jwt__Clave: ${JWT_CLAVE:-clave_de_desarrollo_local_minimo_32_caracteres_x}
       ASPNETCORE_URLS: http://+:8080
     ports:
       - "5008:8080"
