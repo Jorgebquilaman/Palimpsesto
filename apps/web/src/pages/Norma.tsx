@@ -1,0 +1,422 @@
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import DOMPurify from 'dompurify'
+import {
+  traerFragmentos,
+  traerNorma,
+  traerRelaciones,
+} from '../api/cliente'
+
+const ETIQUETAS_VIGENCIA: Record<string, string> = {
+  vigente: 'Vigente',
+  modificada: 'Modificada',
+  derogada: 'Derogada',
+  derogada_parcialmente: 'Derogada parcialmente',
+  deja_sin_efecto: 'Deja sin efecto',
+}
+
+const NOMBRE_TIPO: Record<string, string> = {
+  encabezado: 'Encabezado',
+  visto: 'Visto',
+  considerando: 'Considerando',
+  parte_dispositiva: 'Parte dispositiva',
+  articulo: 'Artículo',
+  anexo: 'Anexo',
+  pagina: 'Página',
+}
+
+const PESTANAS = [
+  ['texto', 'Texto'],
+  ['pdf', 'PDF original'],
+  ['relaciones', 'Relaciones'],
+  ['metadatos', 'Metadatos'],
+] as const
+
+export default function Norma() {
+  const { codigo = '' } = useParams()
+  const [parametros] = useSearchParams()
+  const q = parametros.get('q') ?? ''
+  const [pestana, setPestana] = useState<(typeof PESTANAS)[number][0]>('texto')
+  const [terminoInterior, setTerminoInterior] = useState('')
+  const [mensaje, setMensaje] = useState('')
+
+  const { data: norma, isError } = useQuery({
+    queryKey: ['norma', codigo],
+    queryFn: () => traerNorma(codigo),
+    retry: false,
+  })
+
+  const { data: texto } = useQuery({
+    queryKey: ['norma-html', codigo],
+    queryFn: () => traerFragmentos(codigo),
+    enabled: !!norma,
+  })
+
+  const { data: relaciones } = useQuery({
+    queryKey: ['norma-relaciones', codigo],
+    queryFn: () => traerRelaciones(codigo),
+    enabled: !!norma,
+  })
+
+  useEffect(() => {
+    if (isError) {
+      document.title = 'Norma no encontrada — Digesto IUPA'
+    } else if (norma) {
+      document.title = `${norma.codigoNormalizado} — Digesto IUPA`
+    }
+  }, [norma, isError])
+
+  useEffect(() => {
+    if (!mensaje) return
+    const t = setTimeout(() => setMensaje(''), 3000)
+    return () => clearTimeout(t)
+  }, [mensaje])
+
+  function copiar(contenido: string, msj: string) {
+    void navigator.clipboard.writeText(contenido)
+    setMensaje(msj)
+  }
+
+  function copiarCita() {
+    if (!norma) return
+    const cita = `${norma.tipo.nombre} N° ${norma.numero}/${norma.anio} del ${norma.organo.nombre} (${norma.codigoNormalizado}), sancionada el ${norma.fechaSancion}. Disponible en: ${window.location.origin}/normas/${norma.codigoNormalizado}`
+    copiar(cita, 'Cita copiada al portapapeles')
+  }
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-6">
+      <Link to={q ? `/?q=${encodeURIComponent(q)}` : '/'} className="text-sm text-gray-500 underline hover:text-gray-800 dark:text-gray-400">
+        ← Volver a la búsqueda
+      </Link>
+
+      {isError && (
+        <div className="mt-6 rounded-lg bg-red-50 p-6 dark:bg-red-950">
+          <h1 className="text-lg font-bold text-red-700 dark:text-red-300">Norma no encontrada</h1>
+          <p className="text-sm text-red-600 dark:text-red-200">El código {codigo} no existe o no está publicada.</p>
+        </div>
+      )}
+
+      {norma && (
+        <>
+          <header className="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <p className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span className="rounded bg-gray-100 px-2 py-0.5 font-mono dark:bg-gray-800">{norma.codigoNormalizado}</span>
+              <span className={`rounded px-2 py-0.5 ${estiloVigencia(norma.vigencia)}`}>
+                {ETIQUETAS_VIGENCIA[norma.vigencia] ?? norma.vigencia}
+              </span>
+              {norma.textoOrigen === 2 && (
+                <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-800 dark:bg-amber-950 dark:text-amber-300" title="Este texto fue obtenido por OCR y puede contener errores">
+                  texto OCR
+                </span>
+              )}
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {norma.tipo.nombre} N° {norma.numero}/{norma.anio} — {norma.titulo}
+            </h1>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {norma.organo.nombre} · sanción {norma.fechaSancion}
+              {norma.fechaPublicacion && <> · publicación {norma.fechaPublicacion}</>}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={copiarCita} className="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">
+                Copiar cita
+              </button>
+              <button onClick={() => copiar(`${window.location.origin}/normas/${norma.codigoNormalizado}`, 'Enlace permanente copiado')}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+                Copiar enlace permanente
+              </button>
+              <a href={`/api/v1/normas/${norma.codigoNormalizado}/pdf`} download={norma.codigoNormalizado + '.pdf'}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+                Descargar PDF
+              </a>
+              <button onClick={() => window.print()} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+                Imprimir
+              </button>
+            </div>
+            <div aria-live="polite">
+              {mensaje && <p className="mt-2 text-xs text-green-700 dark:text-green-400">{mensaje}</p>}
+            </div>
+          </header>
+
+          <div className="mt-4">
+            <div role="tablist" aria-label="Secciones de la norma" className="flex gap-1 border-b border-gray-200 dark:border-gray-800">
+              {PESTANAS.map(([valor, etiqueta]) => (
+                <button
+                  key={valor}
+                  role="tab"
+                  aria-selected={pestana === valor}
+                  onClick={() => setPestana(valor)}
+                  className={`rounded-t-lg px-4 py-2 text-sm font-medium ${pestana === valor
+                    ? 'border border-b-0 border-gray-200 bg-white text-blue-700 dark:border-gray-800 dark:bg-gray-900 dark:text-blue-400'
+                    : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                >
+                  {etiqueta}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            {pestana === 'texto' && texto && (
+              <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+                <aside aria-label="Índice de artículos" className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Índice</h3>
+                  <ol className="space-y-1 text-sm">
+                    {texto.fragmentos.map(f => (
+                      <li key={f.orden}>
+                        <a href={`#fragmento-${f.orden}`} className="block rounded px-1 py-0.5 hover:bg-gray-50 dark:hover:bg-gray-800">
+                          {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                  <label className="mt-3 block text-xs">
+                    Buscar dentro de la norma
+                    <input value={terminoInterior} onChange={(e) => setTerminoInterior(e.target.value)}
+                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-800"
+                      placeholder="término" />
+                  </label>
+                </aside>
+                <section aria-label="Texto de la norma" className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                  <TextoNorma
+                    fragmentos={texto.fragmentos}
+                    terminos={terminoInterior || q}
+                  />
+                </section>
+              </div>
+            )}
+
+            {pestana === 'pdf' && norma && <VisorPdf codigo={norma.codigoNormalizado} />}
+
+            {pestana === 'relaciones' && (
+              <section aria-label="Relaciones" className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                {relaciones?.origen.length === 0 && relaciones?.destino.length === 0 && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Esta norma no tiene relaciones registradas.</p>
+                )}
+                {relaciones && relaciones.origen.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">Modifica / deroga / reglamenta a</h3>
+                    <ul className="space-y-1 text-sm">
+                      {relaciones.origen.map((r, i) => (
+                        <li key={i}>
+                          <strong>{r.tipo}</strong> →{' '}
+                          <Link className="underline" to={`/normas/${r.normaDestino.codigoNormalizado}`}>
+                            {r.normaDestino.codigoNormalizado}
+                          </Link>{' '}
+                          {r.normaDestino.titulo}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {relaciones && relaciones.destino.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">Modificada por / derogada por</h3>
+                    <ul className="space-y-1 text-sm">
+                      {relaciones.destino.map((r, i) => (
+                        <li key={i}>
+                          <strong>{r.tipo}</strong> ←{' '}
+                          <Link className="underline" to={`/normas/${r.normaOrigen.codigoNormalizado}`}>
+                            {r.normaOrigen.codigoNormalizado}
+                          </Link>{' '}
+                          {r.normaOrigen.titulo}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {pestana === 'metadatos' && (
+              <section aria-label="Metadatos" className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {[
+                      ['Código', norma.codigoNormalizado],
+                      ['Tipo', `${norma.tipo.nombre} (${norma.tipo.codigo})`],
+                      ['Órgano emisor', `${norma.organo.nombre} (${norma.organo.codigo})`],
+                      ['Número', `${norma.numero}${norma.sufijo ? `—${norma.sufijo}` : ''}`],
+                      ['Año', String(norma.anio)],
+                      ['Fecha de sanción', norma.fechaSancion],
+                      ['Fecha de publicación', norma.fechaPublicacion ?? '—'],
+                      ['Boletín oficial', norma.boletin ? `N° ${norma.boletin.numero} del ${norma.boletin.fechaPublicacion}` : '—'],
+                      ['Expediente', norma.expediente ?? '—'],
+                      ['Palabras clave', norma.palabrasClave?.join(', ') || '—'],
+                      ['Origen del texto', norma.textoOrigen === 1 ? 'PDF con texto nativo' : 'OCR (puede contener errores)'],
+                      ['Resumen', norma.resumen ?? '—'],
+                    ].map(([clave, valor]) => (
+                      <tr key={clave} className="border-b border-gray-100 dark:border-gray-800">
+                        <th scope="row" className="w-48 text-left py-2 font-medium text-gray-600 dark:text-gray-400">{clave}</th>
+                        <td className="py-2">{valor}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
+          </div>
+
+          <p className="mt-6 text-xs text-gray-500 dark:text-gray-400">
+            El PDF firmado es el documento oficial; el texto en pantalla es una copia de lectura.
+          </p>
+        </>
+      )}
+    </main>
+  )
+}
+
+function TextoNorma({ fragmentos, terminos }: { fragmentos: { orden: number; paginaDesde: number | null; paginaHasta: number | null; html: string | null; texto: string }[]; terminos?: string }) {
+  const contenedor = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const raiz = contenedor.current
+    if (!raiz) return
+
+    raiz.querySelectorAll('mark.resaltado-digesto').forEach(m => {
+      const padre = m.parentNode
+      if (padre) {
+        padre.replaceChild(document.createTextNode(m.textContent ?? ''), m)
+        Normalizer()
+      }
+    })
+
+    const termino = terminos?.trim()
+    if (!termino || termino.length < 3) {
+      Normalizer()
+      return
+    }
+
+    const regex = new RegExp(`^${termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'iu')
+    const treeWalker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT)
+    const candidatos: Text[] = []
+    while (treeWalker.nextNode()) {
+      const node = treeWalker.currentNode as Text
+      if (node.textContent && regex.test(node.textContent)) candidatos.push(node)
+    }
+    for (const nodo of candidatos) {
+      const texto = nodo.textContent as string
+      const marca = document.createElement('mark')
+      marca.className = 'resaltado-digesto'
+      marca.textContent = texto
+      nodo.parentNode?.replaceChild(marca, nodo)
+    }
+  }, [terminos, fragmentos])
+
+  return (
+    <div ref={contenedor} className="space-y-6">
+      {fragmentos.map(f => (
+        <article key={f.orden} id={`fragmento-${f.orden}`} data-page={f.paginaDesde ?? undefined}>
+          {f.html
+            ? <div className="texto-norma prose-sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(f.html) }} />
+            : <p className="whitespace-pre-wrap text-sm">{f.texto}</p>}
+          {f.paginaDesde && (
+            <p className="mt-1 text-right text-[10px] text-gray-400">
+              página {f.paginaDesde}{f.paginaHasta && f.paginaHasta !== f.paginaDesde ? `–${f.paginaHasta}` : ''}
+            </p>
+          )}
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function Normalizer() {
+  void 0
+}
+
+function VisorPdf({ codigo }: { codigo: string }) {
+  const [pagina, setPagina] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
+  const [escala, setEscala] = useState(1.25)
+
+  const pdfUrl = useMemo(() => `/api/v1/normas/${encodeURIComponent(codigo)}/pdf`, [codigo])
+
+  return (
+    <section aria-label="Visor del PDF original" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+        <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1}
+          className="rounded border px-2 py-1 disabled:opacity-40 dark:border-gray-700">←</button>
+        <span>Página {pagina} de {totalPaginas}</span>
+        <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas}
+          className="rounded border px-2 py-1 disabled:opacity-40 dark:border-gray-700">→</button>
+        <span className="mx-2">|</span>
+        <button onClick={() => setEscala(e => Math.max(0.5, e - 0.25))} className="rounded border px-2 py-1 dark:border-gray-700">−</button>
+        <span>{Math.round(escala * 100)}%</span>
+        <button onClick={() => setEscala(e => Math.min(3, e + 0.25))} className="rounded border px-2 py-1 dark:border-gray-700">+</button>
+        <a href={pdfUrl} download className="ml-auto rounded border px-2 py-1 dark:border-gray-700">Descargar PDF</a>
+      </div>
+      <LienzosPdf pdfUrl={pdfUrl} pagina={pagina} escala={escala}
+        onPaginas={(n) => {
+          setTotalPaginas(n)
+          if (pagina > n) setPagina(1)
+        }} />
+      <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+        Si el texto se ve con errores, usá el PDF original: es el documento oficial.
+      </p>
+    </section>
+  )
+}
+
+function LienzosPdf({
+  pdfUrl,
+  pagina,
+  escala,
+  onPaginas,
+}: {
+  pdfUrl: string
+  pagina: number
+  escala: number
+  onPaginas: (total: number) => void
+}) {
+  const lienzo = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    let vigente = true
+    const cargando = (async () => {
+      const pdfjs = await import('pdfjs-dist')
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url,
+      ).toString()
+
+      const tarea = await pdfjs.getDocument({ url: pdfUrl }).promise
+      onPaginas(tarea.numPages)
+      if (!vigente) return
+
+      const doc = await tarea.getPage(Math.min(pagina, tarea.numPages))
+      const viewport = doc.getViewport({ scale: escala })
+      const canvas = lienzo.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      canvas.width = viewport.width
+      canvas.height = viewport.height
+      await doc.render({ canvas: canvas, canvasContext: ctx, viewport } as Parameters<typeof doc.render>[0]).promise
+    })()
+
+    return () => {
+      vigente = false
+      void cargando
+    }
+  }, [pdfUrl, pagina, escala, onPaginas])
+
+  return (
+    <div className="mx-auto overflow-auto bg-gray-100 p-2 dark:bg-gray-800">
+      <canvas ref={lienzo} className="mx-auto block shadow-lg" />
+    </div>
+  )
+}
+
+function estiloVigencia(vigencia: string): string {
+  const estilos: Record<string, string> = {
+    vigente: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
+    modificada: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
+    derogada: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
+    derogada_parcialmente: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
+    deja_sin_efecto: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+  }
+  return estilos[vigencia] ?? 'bg-gray-100 text-gray-700'
+}

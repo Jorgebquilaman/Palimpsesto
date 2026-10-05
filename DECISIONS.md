@@ -101,3 +101,20 @@ La migración manual (sin `dotnet ef add`) solo se descubre si lleva el archivo 
 
 **2026-10-04 — `FileStorage:Root` por defecto es el cwd (`archivos/` bajo el directorio de ejecución).**
 El pipeline necesita resolver rutas absolutas para `pdfinfo`/`pdftotext`; cada proceso (API y worker) tenía su propio default divergente. En docker-compose ambas comparten `FileStorage__Root: /data/archivos` (volumen común); en desarrollo local se exporta `FILE_STORAGE_ROOT` igual para ambos.
+
+## Hito 4 — Frontend público
+
+**2026-10-04 — Filtros de búsqueda viven en la URL (`useSearchParams`).**
+Cada cambio de filtro es un `setParametros`: las búsquedas quedan compartibles y el back/forward del navegador funciona. TanStack Query key = querystring completa, con `placeholderData` para no flashear setState mientras se teclea.
+
+**2026-10-04 — Snippets renderizados con `dangerouslySetInnerHTML` y confianzas acotadas.**
+Los `<mark>` vienen de `ts_headline` del servidor, que escapa el texto origen; no ejecutar nada más ahí. El HTML de fragmentos, en cambio, SI pasa por `DOMPurify.sanitize` en el cliente además del sanitizador del worker (defensa en dos capas).
+
+**2026-10-04 — Visor PDF con `pdfjs-dist` dinámico y canvas por página.**
+`import('pdfjs-dist')` lazy: el bundle principal no crece (pdf.js se parte en un chunk propio de ~129 kB gzip). Worker configurado por URL del paquete (compatible con Vite). Navegación por página y zoom con re-render; para salto directo a la página del fragmento queda `data-page` en los artículos (fase 2).
+
+**2026-10-04 — Resaltado de términos con TreeWalker + `<mark>`.**
+La búsqueda previa (`?q=`) y la búsqueda dentro de la norma marcan coincidencias en el DOM ya sanitizado, sin tocar la estructura.
+
+**2026-10-04 — `dangerouslySetInnerHTML` limitado a fragmentos: cada artículo lleva `id="art-N"` y `data-page`, generados por el worker.**
+El índice lateral ancla a esos ids; el orden de los fragmentos es el del documento.
