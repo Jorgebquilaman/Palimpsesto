@@ -386,10 +386,15 @@ function LienzosPdf({
   onEstado: (estado: 'cargando' | 'listo' | 'error') => void
 }) {
   const lienzo = useRef<HTMLCanvasElement>(null)
+  const tareaRender = useRef<{ cancel: () => void } | null>(null)
+  const cbPaginas = useRef(onPaginas)
+  const cbEstado = useRef(onEstado)
+  cbPaginas.current = onPaginas
+  cbEstado.current = onEstado
 
   useEffect(() => {
     let vigente = true
-    onEstado('cargando')
+    cbEstado.current('cargando')
     const cargando = (async () => {
       try {
         const pdfjs = await import('pdfjs-dist')
@@ -397,7 +402,7 @@ function LienzosPdf({
 
         const tarea = await pdfjs.getDocument({ url: pdfUrl }).promise
         if (!vigente) return
-        onPaginas(tarea.numPages)
+        cbPaginas.current(tarea.numPages)
 
         const doc = await tarea.getPage(Math.min(pagina, tarea.numPages))
         const viewport = doc.getViewport({ scale: escala })
@@ -406,21 +411,27 @@ function LienzosPdf({
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
+        tareaRender.current?.cancel()
         canvas.width = viewport.width
         canvas.height = viewport.height
-        await doc.render({ canvas, canvasContext: ctx, viewport }).promise
-        if (vigente) onEstado('listo')
+        const render = doc.render({ canvasContext: ctx, viewport })
+        tareaRender.current = render
+        await render.promise
+        if (vigente) cbEstado.current('listo')
       } catch (err) {
-        if (vigente) onEstado('error')
-        console.error('PDF', err)
+        if (vigente && !String((err as Error)?.message ?? '').includes('cancelled')) {
+          console.error('PDF', err)
+          cbEstado.current('error')
+        }
       }
     })()
 
     return () => {
       vigente = false
+      tareaRender.current?.cancel()
       void cargando
     }
-  }, [pdfUrl, pagina, escala, onPaginas, onEstado])
+  }, [pdfUrl, pagina, escala])
 
   return (
     <div className="mx-auto min-h-[70vh] max-h-[85vh] overflow-auto bg-canvas p-2">

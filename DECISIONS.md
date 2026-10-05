@@ -303,3 +303,11 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 **Fix**: `docker exec -u root palimpsesto-worker-1 chmod -R a+rwX /data/archivos` (a+rwX: dirs 777, archivos 666). Si vuelve a pasar: revisar `ls -la /data/archivos/2026/10/` y `id` del worker.
 
 **Reencolar proceso**: `UPDATE proceso_ingesta SET estado=1, intentos=0, error=NULL, locked_at=NULL WHERE id=N` (EstadoProceso: Pendiente=1, EnCurso=2, Ok=3, Error=4).
+
+## Visor de PDF público
+
+**pdfjs-dist fijado en v4.10.38**: la v6 usa `Map.getOrInsertComputed` (Chrome ≥136) y su manejo de worker con módulos ESM es frágil en builds de producción. Con v4 el worker va como asset de Vite (`import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'`) y funciona en cualquier Chrome.
+
+**nginx y .mjs**: la imagen base de nginx no mapea `.mjs`; se sirve `application/octet-stream` y el navegador rechaza el módulo. En `docker/nginx.conf` hay un `location ~* \.mjs$` con `types { }` + `default_type application/javascript`. OJO: un `types { include ... }` a nivel server rompe nginx (`unexpected "{"`) — solo el patrón location funciona.
+
+**Renders solapados en el canvas**: los callbacks `onPaginas`/`onEstado` pasados inline tienen identidad nueva en cada render → el useEffect de LienzosPdf se relanza → "Cannot use the same canvas during multiple render() operations". Fix: guardar los callbacks en refs (`cbPaginas.current`) fuera de las dependencias y cancelar el `RenderTask` previo (`tareaRender.current?.cancel()`).
