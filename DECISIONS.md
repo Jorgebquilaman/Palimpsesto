@@ -260,3 +260,11 @@ Todo con radios y colores de tokens; el contraste WCAG AA sigue pasando (15 pare
 - Pie del menú: volver al sitio público y salir
 
 Los grupos colapsan con chevron rotado y se auto-abren si la ruta activa pertenece al grupo; la hoja activa lleva rombo `✦` y fondo crema translúcido. En móvil sigue la barra horizontal por arriba. Los anclas llevan `scroll-margin-top` para no quedar bajo nada.
+
+## Fix — 500 al ver el PDF de un borrador
+
+**Causa**: normivas subidas antes del fix de `FileStorage__Root` tenían el archivo físico en la raíz vieja (`archivos/` del repo, cuando la API corría con `dotnet run` local); la fila `norma_archivo` apunta a un `storage_key` que no existía en el volumen Docker. Diagnóstico por el 500 (`FileNotFoundException`).
+
+**Recuperación**: `docker cp` de la carpeta `archivos/2026/10/` local al volumen `/data/archivos/2026/10/` del contenedor (24 archivos). Los PDFs volver a estar disponibles sin reprocesar.
+
+**Robustez**: los dos endpoints de PDF (admin borrador y público) atrapan `FileNotFoundException`/`DirectoryNotFoundException` y responden 404 con mensaje "reprocesá la norma" en lugar de 500.

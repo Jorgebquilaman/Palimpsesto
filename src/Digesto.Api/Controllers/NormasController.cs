@@ -204,8 +204,19 @@ public class NormasController : ControllerBase
             return Problem(statusCode: 404, detail: "PDF no disponible");
         }
 
-        var stream = await _fileStorage.AbrirAsync(archivo.StorageKey, ct);
-        return File(stream, "application/pdf", archivo.NombreOriginal, enableRangeProcessing: true);
+        try
+        {
+            var stream = await _fileStorage.AbrirAsync(archivo.StorageKey, ct);
+            return File(stream, "application/pdf", archivo.NombreOriginal, enableRangeProcessing: true);
+        }
+        catch (FileNotFoundException)
+        {
+            return Problem(statusCode: 404, detail: "El archivo físico no está disponible en el almacenamiento");
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return Problem(statusCode: 404, detail: "El archivo físico no está disponible en el almacenamiento");
+        }
     }
     [HttpGet("sugerencias")]
     public async Task<IActionResult> Sugerencias([FromQuery] string? q, [FromQuery] int limite = 8, CancellationToken ct = default)
