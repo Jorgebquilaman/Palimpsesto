@@ -70,3 +70,28 @@ public class AiNormaServiceTests
         Assert.Null(datos.Numero);
     }
 }
+
+public class AiNormaServiceFragmentosTests
+{
+    [Fact]
+    public void ParsearRespuesta_ConFragmentos()
+    {
+        const string crudo = """
+            {
+              "numero": 8,
+              "anio": 2019,
+              "citas": [],
+              "fragmentos": [
+                { "tipo": "encabezado", "etiqueta": null, "texto": "Resolución N° 008/19. General Roca, 15 de febrero de 2019." },
+                { "tipo": "articulo", "etiqueta": "Artículo 1", "texto": "ARTÍCULO 1.- Se aprueba el régimen." }
+              ]
+            }
+            """;
+
+        var datos = Digesto.Infrastructure.Ai.AiNormaService.ParsearRespuesta(crudo);
+
+        Assert.Equal(2, datos.Fragmentos.Count);
+        Assert.Equal("articulo", datos.Fragmentos[1].Tipo);
+        Assert.Equal("Artículo 1", datos.Fragmentos[1].Etiqueta);
+    }
+}

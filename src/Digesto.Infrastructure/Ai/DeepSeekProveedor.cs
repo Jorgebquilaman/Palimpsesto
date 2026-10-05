@@ -72,7 +72,7 @@ public class DeepSeekProveedor : IProveedorAi
             response_format = new { type = "json_object" },
             thinking = new { type = "disabled" },
             temperature = 0.1,
-            max_tokens = 4000,
+            max_tokens = imagenes is { Count: > 0 } ? 8000 : 4000,
         };
 
         var respuesta = await cliente.PostAsJsonAsync("chat/completions", pedido, ct);

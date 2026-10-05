@@ -104,14 +104,20 @@ public partial class AiNormaService : IAiNormaService
               "organo": código del órgano emisor (de la lista provista; si no se deduce, null),
               "vigencia": "vigente" | "modificada" | "derogada" | "derogada_parcialmente" | "deja_sin_efecto",
               "citas": array de normas que esta menciona (modifica, deroga, reglamenta, ratifica, deja sin efecto o complementa),
-                cada una como { "tipo": código, "numero": entero, "anio": entero, "tipo_relacion": "modifica|deroga|derogaparcialmente|reglamenta|complementa|ratifica|dejainsineffecto" }
+                cada una como { "tipo": código, "numero": entero, "anio": entero, "tipo_relacion": "modifica|deroga|derogaparcialmente|reglamenta|complementa|ratifica|dejainsineffecto" },
+              "fragmentos": array con el contenido del documento en orden, cada uno como
+                { "tipo": "encabezado|visto|considerando|parte_dispositiva|articulo|anexo|pagina",
+                  "etiqueta": texto corto (p. ej. "Artículo 1") o null,
+                  "texto": el texto literal de ese fragmento }
             }
-            Si un dato no aparece en el texto, usá null (o array vacío para citas). No inventes datos.
+            Si un dato no aparece en el texto, usá null (o array vacío para citas y fragmentos). No inventes datos.
             PROHIBIDO inventar información: basate únicamente en lo que se ve en el documento.
             - El resumen solo puede afirmar lo que el documento establece; no menciones artículos,
               plazos, montos, plazos ni números de artículo que no figuren literalmente en el documento.
             - Si la norma no tiene artículos, no menciones artículos en el resumen.
             - No uses conocimiento externo ni suposiciones: si algo no está, null.
+            - En "fragmentos" transcribí SOLO lo que se lee en el documento, sin inventar ni resumir;
+              si el documento es ilegible, usá array vacío.
             """;
 
         var usuario = $"""
@@ -156,6 +162,30 @@ public partial class AiNormaService : IAiNormaService
 
         var advertencias = new List<string>();
         var aplicados = await AplicarDatosAsync(norma, datos, advertencias, ct);
+        if (datos.Fragmentos.Count > 0)
+        {
+            var existentes = await _db.NormasFragmentos.CountAsync(f => f.NormaId == norma.Id, ct);
+            if (existentes == 0)
+            {
+                var orden = 1;
+                foreach (var fr in datos.Fragmentos)
+                {
+                    _db.NormasFragmentos.Add(new Domain.Entidades.NormaFragmento
+                    {
+                        NormaId = norma.Id,
+                        Orden = orden++,
+                        Tipo = MapearTipoFragmento(fr.Tipo),
+                        Etiqueta = string.IsNullOrWhiteSpace(fr.Etiqueta) ? null : fr.Etiqueta[..Math.Min(100, fr.Etiqueta.Length)],
+                        Texto = fr.Texto,
+                    });
+                }
+                aplicados.Add("fragmentos");
+            }
+            else
+            {
+                advertencias.Add("La norma ya tenía texto cargado; no se tocaron los fragmentos (eliminalos si querés regenerarlos con la IA).");
+            }
+        }
         var relacionesCreadas = await CrearRelacionesAsync(norma, datos, ct);
 
         if (norma.Numero > 0)
@@ -176,7 +206,7 @@ public partial class AiNormaService : IAiNormaService
         return new ResultadoCompletarAi(true, datos, aplicados, relacionesCreadas, advertencias);
     }
 
-    internal static DatosAi ParsearRespuesta(string crudo)
+    internal static DatosAi ParsearRespuesta(string crudo)  // expuesto a tests vía InternalsVisibleTo
     {
         var limpio = crudo.Trim();
         var cerca = limpio.IndexOf('{');
@@ -257,6 +287,26 @@ public partial class AiNormaService : IAiNormaService
             }
         }
 
+        var fragmentos = new List<FragmentoDetectadoAi>();
+        if (raiz.TryGetProperty("fragmentos", out var fragmentosEl) && fragmentosEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var frEl in fragmentosEl.EnumerateArray())
+            {
+                if (frEl.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+                var tipoFr = frEl.TryGetProperty("tipo", out var tf) && tf.ValueKind == JsonValueKind.String ? tf.GetString() : null;
+                var etiqueta = frEl.TryGetProperty("etiqueta", out var et) && et.ValueKind == JsonValueKind.String ? et.GetString() : null;
+                var textoFr = frEl.TryGetProperty("texto", out var tx) && tx.ValueKind == JsonValueKind.String ? tx.GetString() : null;
+
+                if (!string.IsNullOrWhiteSpace(textoFr))
+                {
+                    fragmentos.Add(new FragmentoDetectadoAi(tipoFr, etiqueta, textoFr));
+                }
+            }
+        }
+
         return new DatosAi(
             Cadena("tipo_norma"),
             Entero("numero"),
@@ -269,7 +319,8 @@ public partial class AiNormaService : IAiNormaService
             Fecha("fecha_sancion"),
             Cadena("organo"),
             Cadena("vigencia"),
-            citas);
+            citas,
+            fragmentos);
     }
 
     private async Task<List<byte[]>> RenderizarPaginasAsync(string storageKey, CancellationToken ct)
@@ -465,6 +516,17 @@ public partial class AiNormaService : IAiNormaService
 
         return creadas;
     }
+
+    private static Domain.Enums.TipoFragmento MapearTipoFragmento(string? tipo) => tipo?.Trim().ToLowerInvariant() switch
+    {
+        "encabezado" => Domain.Enums.TipoFragmento.Encabezado,
+        "visto" => Domain.Enums.TipoFragmento.Visto,
+        "considerando" => Domain.Enums.TipoFragmento.Considerando,
+        "parte_dispositiva" => Domain.Enums.TipoFragmento.ParteDispositiva,
+        "articulo" => Domain.Enums.TipoFragmento.Articulo,
+        "anexo" => Domain.Enums.TipoFragmento.Anexo,
+        _ => Domain.Enums.TipoFragmento.Pagina,
+    };
 
     private static string NormalizarEnum(string valor) =>
         valor.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_');

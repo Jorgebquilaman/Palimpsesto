@@ -109,7 +109,17 @@ export default function Busqueda() {
 
   return (
     <>
-      <section className="hero-verde no-print relative px-4 pb-24 pt-8 sm:pb-28 sm:pt-12">
+      <section className="hero-verde no-print relative overflow-hidden px-4 pb-24 pt-8 sm:pb-28 sm:pt-12">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.14] mix-blend-screen"
+          style={{
+            backgroundImage: 'url(/librero.jpeg)',
+            backgroundPosition: 'center right',
+            backgroundSize: 'cover',
+            filter: 'saturate(0.6) brightness(0.85)',
+          }}
+        />
         <div className="relative mx-auto grid max-w-5xl gap-10 sm:grid-cols-[1.2fr_1fr] sm:items-center">
           <div>
             <img src="/logo-iupa.svg" alt="Instituto Universitario Patagónico de las Artes"

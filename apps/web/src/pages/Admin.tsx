@@ -158,7 +158,7 @@ export function LayoutAdmin() {
           ☰
         </button>
       )}
-      <div className={"md:pl-60 transition-[padding] duration-200 " + (menuOculto ? "md:pl-0" : "")}>
+      <div className={"transition-[padding] duration-200 " + (menuOculto ? "md:pl-0" : "md:pl-60")}>
         <div className="no-print flex items-center gap-3 border-b border-line px-4 py-3 md:hidden">
           <Link to="/" className="font-display font-semibold text-verde-900">Digesto IUPA</Link>
           <button onClick={() => { cerrarSesion(); navegar('/admin') }} className="ml-auto text-sm text-ink-soft underline">Salir</button>

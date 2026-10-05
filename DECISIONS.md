@@ -366,3 +366,11 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 ## Código normalizado derivado de metadatos
 
 **Regla**: `CodigoNormalizador.Armar(tipo, organo, anio, numero)` → `TIPO-ORGANO-ANIO-NNNN` (dominio puro, `Digesto.Domain/Reglas`). Se recalcula al actualizar metadatos (PUT, con chequeo de duplicado → 409), al aplicar la IA y en la importación CSV cuando la fila trae número. Los borradores (numero=0) conservan el autonumérico temporal (`...-IMP-NNNN` en CSV / secuencial en subida) hasta que se les asigne número. Migración `RecalcularCodigosMetadatos` recodifica las normas existentes con numero>0 (SQL lpad). Ejemplo real: RES-REC-2026-0001 → RES-REC-2026-0039 (39/2026).
+
+## nginx prod: POST sin cuerpo → 400
+
+**Síntoma**: "Completar con AI" desde el front devolvía 400 vacío; curl con `-d '{}'` andaba. La versión de nginx 1.22.1 de Debian con `proxy_request_buffering off` en HTTP/1.0 hacia upstream rechazaba POSTs sin Content-Length. **Fix**: `proxy_http_version 1.1;` + `proxy_set_header Connection "";` en el location /api/ (subidas streaming se conservan).
+
+## La AI ahora completa también los fragmentos
+
+El prompt pide `"fragmentos": [{tipo, etiqueta, texto}]` (transcripción literal; array vacío si es ilegible). Se crean solo si la norma no tiene texto (si tiene, queda advertencia). `max_tokens` sube a 8000 en llamadas con imágenes.
