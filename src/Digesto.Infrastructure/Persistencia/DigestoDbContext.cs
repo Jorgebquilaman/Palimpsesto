@@ -21,6 +21,7 @@ public class DigestoDbContext : IdentityDbContext<UsuarioApp>
     public DbSet<ProcesoIngesta> ProcesosIngesta => Set<ProcesoIngesta>();
     public DbSet<ConsultaBusqueda> ConsultasBusqueda => Set<ConsultaBusqueda>();
     public DbSet<Auditoria> Auditorias => Set<Auditoria>();
+    public DbSet<Configuracion> Configuracion => Set<Configuracion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

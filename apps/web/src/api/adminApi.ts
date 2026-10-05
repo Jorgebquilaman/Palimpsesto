@@ -167,3 +167,31 @@ export const ETIQUETAS_VISIBILIDAD: Record<string, string> = {
   interna: 'Interna',
   reservada: 'Reservada',
 }
+
+export interface EstadoAi {
+  configurada: boolean
+  modelo: string
+  clave: string | null
+}
+
+export interface ResultadoAi {
+  camposAplicados: string[]
+  relacionesCreadas: { codigoDestino: string; tipoRelacion: string }[]
+  advertencias: string[]
+}
+
+export function pedirAiEstado(): Promise<EstadoAi> {
+  return pedirAdmin<EstadoAi>('/admin/ai')
+}
+
+export function guardarAi(clave: string | null, modelo: string | null, baseUrl: string | null): Promise<unknown> {
+  return pedirAdmin('/admin/ai', { method: 'PUT', body: JSON.stringify({ claveApi: clave, modelo, baseUrl }) })
+}
+
+export function probarAi(): Promise<{ ok: boolean; detalle: string }> {
+  return pedirAdmin<{ ok: boolean; detalle: string }>('/admin/ai/probar', { method: 'POST' })
+}
+
+export function completarConAi(normaId: string): Promise<ResultadoAi> {
+  return pedirAdmin<ResultadoAi>(`/admin/ai/normas/${normaId}/completar`, { method: 'POST' })
+}

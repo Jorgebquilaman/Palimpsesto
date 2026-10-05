@@ -10,6 +10,7 @@ import RevisionNorma from './pages/RevisionNorma'
 import CatalogosAdmin from './pages/CatalogosAdmin'
 import AuditoriaAdmin from './pages/AuditoriaAdmin'
 import UsuariosAdmin from './pages/UsuariosAdmin'
+import AiAdmin from './pages/AiAdmin'
 
 function EnPantallaPublica() {
   const ubicacion = useLocation()
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="catalogos" element={<CatalogosAdmin />} />
             <Route path="auditoria" element={<AuditoriaAdmin />} />
             <Route path="usuarios" element={<UsuariosAdmin />} />
+            <Route path="ai" element={<AiAdmin />} />
           </Route>
         </Route>
 

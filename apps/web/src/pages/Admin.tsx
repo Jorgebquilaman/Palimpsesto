@@ -116,6 +116,7 @@ export function LayoutAdmin() {
             <Hoja ruta="/admin/catalogos#materias" activa={false}>Materias</Hoja>
           </Rama>
 
+          <HojaSimple ruta="/admin/ai" icono="✦" activa={ruta === '/admin/ai'}>Inteligencia artificial</HojaSimple>
           <HojaSimple ruta="/admin/auditoria" icono="❝" activa={ruta === '/admin/auditoria'}>Auditoría</HojaSimple>
           <HojaSimple ruta="/admin/usuarios" icono="◉" activa={ruta === '/admin/usuarios'}>Usuarios y roles</HojaSimple>
         </nav>

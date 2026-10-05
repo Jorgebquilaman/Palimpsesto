@@ -1,0 +1,345 @@
+using System.Text.Json;
+using Digesto.Application.Ai;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace Digesto.Infrastructure.Ai;
+
+public partial class AiNormaService : IAiNormaService
+{
+    private readonly Persistencia.DigestoDbContext _db;
+    private readonly IProveedorAi _proveedor;
+    private readonly ILogger<AiNormaService> _logger;
+
+    private const int MaxCaracteresTexto = 12000;
+
+    public AiNormaService(Persistencia.DigestoDbContext db, IProveedorAi proveedor, ILogger<AiNormaService> logger)
+    {
+        _db = db;
+        _proveedor = proveedor;
+        _logger = logger;
+    }
+
+    public async Task<ResultadoCompletarAi> CompletarNormaAsync(Guid normaId, CancellationToken ct = default)
+    {
+        var norma = await _db.Normas
+            .Include(n => n.TipoNorma)
+            .Include(n => n.OrganoEmisor)
+            .Include(n => n.Fragmentos.OrderBy(f => f.Orden))
+            .FirstOrDefaultAsync(n => n.Id == normaId, ct);
+
+        if (norma is null)
+        {
+            return ResultadoCompletarAi.Falla("Norma no encontrada");
+        }
+
+        if (norma.Fragmentos.Count == 0)
+        {
+            return ResultadoCompletarAi.Falla("El documento todavía no tiene texto procesado; esperá al worker o reprocesá");
+        }
+
+        var texto = string.Join("\n\n", norma.Fragmentos.Select(f => f.Texto));
+        if (texto.Length > MaxCaracteresTexto)
+        {
+            texto = texto[..MaxCaracteresTexto];
+        }
+
+        var tiposDisponibles = await _db.TiposNorma
+            .Where(t => t.Activo)
+            .Select(t => t.Codigo)
+            .ToListAsync(ct);
+
+        var organosDisponibles = await _db.OrganosEmisores
+            .Where(o => o.Activo)
+            .Select(o => new { o.Codigo, o.Nombre })
+            .ToListAsync(ct);
+
+        var sistema = """
+            Sos un asistente que completa metadatos de normas institucionales de una universidad
+            argentina (IUPA). Recibís el texto completo de una norma y devolvés SOLO un objeto JSON
+            válido (sin texto adicional), con estas claves:
+            {
+              "tipo_norma": código del tipo (de la lista provista),
+              "numero": entero, "anio": entero, "sufijo": null o texto corto,
+              "titulo": máx 200 caracteres, descriptivo, sin el número ni el tipo,
+              "resumen": 2 a 4 oraciones en español rioplatense que resuman qué establece la norma,
+              "palabras_clave": array de 3 a 8 términos,
+              "expediente": null o texto,
+              "fecha_sancion": "YYYY-MM-DD" o null,
+              "organo": código del órgano emisor (de la lista provista; si no se deduce, null),
+              "vigencia": "vigente" | "modificada" | "derogada" | "derogada_parcialmente" | "deja_sin_efecto",
+              "citas": array de normas que esta menciona (modifica, deroga, reglamenta, ratifica, deja sin efecto o complementa),
+                cada una como { "tipo": código, "numero": entero, "anio": entero, "tipo_relacion": "modifica|deroga|derogaparcialmente|reglamenta|complementa|ratifica|dejainsineffecto" }
+            }
+            Si un dato no aparece en el texto, usá null (o array vacío para citas). No inventes datos.
+            """;
+
+        var usuario = $"""
+            Tipos de norma disponibles: {string.Join(", ", tiposDisponibles)}
+            Órganos disponibles: {string.Join("; ", organosDisponibles.Select(o => $"{o.Codigo} = {o.Nombre}"))}
+
+            TEXTO DE LA NORMA:
+            {texto}
+            """;
+
+        string crudo;
+        try
+        {
+            crudo = await _proveedor.CompletarAsync(sistema, usuario, TimeSpan.FromSeconds(150), ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ResultadoCompletarAi.Falla(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado llamando a la AI");
+            return ResultadoCompletarAi.Falla("No se pudo contactar a la AI");
+        }
+
+        DatosAi datos;
+        try
+        {
+            datos = ParsearRespuesta(crudo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Respuesta de AI no parseable: {Crudo}", Truncar(crudo, 300));
+            return ResultadoCompletarAi.Falla("La AI devolvió una respuesta que no se pudo interpretar");
+        }
+
+        var aplicados = await AplicarDatosAsync(norma, datos, ct);
+        var relacionesCreadas = await CrearRelacionesAsync(norma, datos, ct);
+        var advertencias = new List<string>();
+
+        norma.ActualizadoEn = DateTime.UtcNow;
+        norma.ActualizadoPor = "ai";
+        await _db.SaveChangesAsync(ct);
+
+        return new ResultadoCompletarAi(true, datos, aplicados, relacionesCreadas, advertencias);
+    }
+
+    internal static DatosAi ParsearRespuesta(string crudo)
+    {
+        var limpio = crudo.Trim();
+        var cerca = limpio.IndexOf('{');
+        var fin = limpio.LastIndexOf('}');
+        if (cerca >= 0 && fin > cerca)
+        {
+            limpio = limpio[cerca..(fin + 1)];
+        }
+
+        using var documento = JsonDocument.Parse(limpio);
+        var raiz = documento.RootElement;
+
+        string? Cadena(string clave)
+        {
+            if (raiz.TryGetProperty(clave, out var v) && v.ValueKind == JsonValueKind.String)
+            {
+                var texto = v.GetString();
+                return string.IsNullOrWhiteSpace(texto) ? null : texto;
+            }
+            return null;
+        }
+
+        int? Entero(string clave)
+        {
+            if (raiz.TryGetProperty(clave, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var e))
+            {
+                return e;
+            }
+            return null;
+        }
+
+        short? EnteroCorto(string clave)
+        {
+            if (raiz.TryGetProperty(clave, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt16(out var e))
+            {
+                return e;
+            }
+            return null;
+        }
+
+        DateOnly? Fecha(string clave)
+        {
+            var texto = Cadena(clave);
+            return DateOnly.TryParse(texto, out var f) ? f : null;
+        }
+
+        string[]? Lista(string clave)
+        {
+            if (raiz.TryGetProperty(clave, out var v) && v.ValueKind == JsonValueKind.Array)
+            {
+                return v.EnumerateArray()
+                    .Where(e => e.ValueKind == JsonValueKind.String)
+                    .Select(e => e.GetString() ?? "")
+                    .Where(t => t.Length > 0)
+                    .ToArray();
+            }
+            return null;
+        }
+
+        var citas = new List<CitaDetectadaAi>();
+        if (raiz.TryGetProperty("citas", out var citasEl) && citasEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var citaEl in citasEl.EnumerateArray())
+            {
+                if (citaEl.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+                var tipo = citaEl.TryGetProperty("tipo", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString() : null;
+                var numero = citaEl.TryGetProperty("numero", out var n) && n.ValueKind == JsonValueKind.Number && n.TryGetInt32(out var num) ? num : 0;
+                var anio = citaEl.TryGetProperty("anio", out var a) && a.ValueKind == JsonValueKind.Number && a.TryGetInt16(out var an) ? an : (short)0;
+                var relacion = citaEl.TryGetProperty("tipo_relacion", out var r) && r.ValueKind == JsonValueKind.String ? r.GetString() : null;
+
+                if (!string.IsNullOrWhiteSpace(tipo) && numero > 0 && anio > 1900)
+                {
+                    citas.Add(new CitaDetectadaAi(tipo!, numero, anio, relacion));
+                }
+            }
+        }
+
+        return new DatosAi(
+            Cadena("tipo_norma"),
+            Entero("numero"),
+            EnteroCorto("anio"),
+            Cadena("sufijo"),
+            Cadena("titulo"),
+            Cadena("resumen"),
+            Lista("palabras_clave"),
+            Cadena("expediente"),
+            Fecha("fecha_sancion"),
+            Cadena("organo"),
+            Cadena("vigencia"),
+            citas);
+    }
+
+    private async Task<List<string>> AplicarDatosAsync(Domain.Entidades.Norma norma, DatosAi datos, CancellationToken ct)
+    {
+        var aplicados = new List<string>();
+
+        if (datos.TipoNormaCodigo is { Length: > 0 } tc)
+        {
+            var tipo = await _db.TiposNorma.FirstOrDefaultAsync(t => t.Codigo == tc.ToUpperInvariant(), ct);
+            if (tipo is not null && tipo.Id != norma.TipoNormaId)
+            {
+                norma.TipoNormaId = tipo.Id;
+                aplicados.Add("tipo_norma");
+            }
+        }
+        if (datos.OrganoCodigo is { Length: > 0 } oc)
+        {
+            var organo = await _db.OrganosEmisores.FirstOrDefaultAsync(o => o.Codigo == oc.ToUpperInvariant(), ct);
+            if (organo is not null && organo.Id != norma.OrganoEmisorId)
+            {
+                norma.OrganoEmisorId = organo.Id;
+                aplicados.Add("organo");
+            }
+        }
+        if (datos.Numero is { } n && n > 0)
+        {
+            norma.Numero = n;
+            aplicados.Add("numero");
+        }
+        if (datos.Anio is { } a && a >= 1900)
+        {
+            norma.Anio = a;
+            aplicados.Add("anio");
+        }
+        if (datos.Titulo is { Length: > 3 } t)
+        {
+            norma.Titulo = t.Length <= 500 ? t : t[..500];
+            aplicados.Add("titulo");
+        }
+        if (datos.Resumen is { Length: > 20 } r)
+        {
+            norma.Resumen = r;
+            aplicados.Add("resumen");
+        }
+        if (datos.PalabrasClave is { Length: > 0 } pk)
+        {
+            norma.PalabrasClave = pk;
+            aplicados.Add("palabras_clave");
+        }
+        if (datos.Expediente is { Length: > 0 } e)
+        {
+            norma.Expediente = e.Length <= 50 ? e : e[..50];
+            aplicados.Add("expediente");
+        }
+        if (datos.FechaSancion is { } f)
+        {
+            norma.FechaSancion = f;
+            aplicados.Add("fecha_sancion");
+        }
+        if (datos.Vigencia is { } v)
+        {
+            try
+            {
+                if (Enum.TryParse<Domain.Enums.Vigencia>(NormalizarEnum(v), ignoreCase: true, out var vig))
+                {
+                    norma.Vigencia = vig;
+                    aplicados.Add("vigencia");
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        return aplicados;
+    }
+
+    private async Task<List<RelacionCreadaAi>> CrearRelacionesAsync(
+        Domain.Entidades.Norma norma,
+        DatosAi datos,
+        CancellationToken ct)
+    {
+        var creadas = new List<RelacionCreadaAi>();
+        var tipoPorCodigo = await _db.TiposNorma.ToDictionaryAsync(t => t.Codigo, t => t.Id, ct);
+
+        foreach (var cita in datos.Citas)
+        {
+            var tipoDestinoId = tipoPorCodigo.TryGetValue(cita.Tipo.ToUpperInvariant(), out var idDestino) ? idDestino : (int?)null;
+            if (tipoDestinoId is null)
+            {
+                continue;
+            }
+
+            var destino = await _db.Normas.FirstOrDefaultAsync(
+                n => n.TipoNormaId == tipoDestinoId && n.Numero == cita.Numero && n.Anio == cita.Anio, ct);
+            if (destino is null || destino.Id == norma.Id)
+            {
+                continue;
+            }
+
+            if (!Enum.TryParse<Domain.Enums.TipoRelacion>(NormalizarEnum(cita.TipoRelacion ?? "modifica"), ignoreCase: true, out var tipoRelacion))
+            {
+                tipoRelacion = Domain.Enums.TipoRelacion.Modifica;
+            }
+
+            var yaExiste = await _db.NormasRelaciones.AnyAsync(
+                r => r.NormaOrigenId == norma.Id && r.NormaDestinoId == destino.Id && r.Tipo == tipoRelacion, ct);
+            if (yaExiste)
+            {
+                continue;
+            }
+
+            _db.NormasRelaciones.Add(new Domain.Entidades.NormaRelacion
+            {
+                NormaOrigenId = norma.Id,
+                NormaDestinoId = destino.Id,
+                Tipo = tipoRelacion,
+                Detalle = "Detectada por AI",
+            });
+            creadas.Add(new RelacionCreadaAi(destino.CodigoNormalizado, tipoRelacion.ToString().ToLowerInvariant()));
+        }
+
+        return creadas;
+    }
+
+    private static string NormalizarEnum(string valor) =>
+        valor.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
+
+    private static string Truncar(string texto, int largo) => texto.Length <= largo ? texto : texto[..largo];
+}

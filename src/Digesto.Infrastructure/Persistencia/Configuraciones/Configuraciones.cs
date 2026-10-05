@@ -259,3 +259,15 @@ public class AuditoriaConfig : IEntityTypeConfiguration<Auditoria>
         b.HasIndex(x => x.Fecha).HasDatabaseName("ix_auditoria_fecha");
     }
 }
+
+public class ConfiguracionConfig : IEntityTypeConfiguration<Configuracion>
+{
+    public void Configure(EntityTypeBuilder<Configuracion> b)
+    {
+        b.ToTable("configuracion");
+        b.HasKey(x => x.Clave);
+        b.Property(x => x.Clave).HasColumnName("clave").HasMaxLength(100).IsRequired();
+        b.Property(x => x.Valor).HasColumnName("valor").IsRequired();
+        b.Property(x => x.ActualizadoEn).HasColumnName("actualizado_en");
+    }
+}

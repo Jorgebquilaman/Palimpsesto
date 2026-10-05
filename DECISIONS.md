@@ -268,3 +268,18 @@ Los grupos colapsan con chevron rotado y se auto-abren si la ruta activa pertene
 **Recuperación**: `docker cp` de la carpeta `archivos/2026/10/` local al volumen `/data/archivos/2026/10/` del contenedor (24 archivos). Los PDFs volver a estar disponibles sin reprocesar.
 
 **Robustez**: los dos endpoints de PDF (admin borrador y público) atrapan `FileNotFoundException`/`DirectoryNotFoundException` y responden 404 con mensaje "reprocesá la norma" en lugar de 500.
+
+## Integración DeepSeek
+
+**Elección de la API de DeepSeek** (compatibility API estilo OpenAI en `api.deepseek.com/chat/completions`): `deepseek-chat` como modelo default, `response_format: json_object` + `temperature: 0.1` para respuestas estructuradas estables; instrucción explícita de "no inventes datos, null si no aparece".
+
+**Configuración en DB, no en env**: el volumen de `configuracion` (clave/valor JSON) guarda `clave_api`, `modelo` y `base_url`. La API key la carga el administrador por UI (Inteligencia artificial en el menú del backoffice) — precaución operativa: la clave está en la base del sistema, no en el repo; backups de `pg_dump` la contienen. `DEEPSEEK_API_KEY` env también funciona como fallback sin persistir.
+
+**Flujo de "Completar con AI"** (`POST /admin/ai/normas/{id}/completar`):
+1. Lee los fragmentos ya extraídos por el worker (hasta 12.000 caracteres)
+2. Manda el texto + catálogos de tipos y órganos disponibles al LLM
+3. Aplica los campos que el modelo devuelva (tipo, número, año, título, resumen, palabras clave, expediente, fecha, vigencia)
+4. Para cada `cita` detectada (otra norma mencionada con tipo/número/año), busca la norma en la DB y crea la relación (`modifica`, `deroga`, `reglamenta`…) si no existía — `Detalle: "Detectada por AI"`
+5. Responde con los campos aplicados + relaciones creadas; el front las muestra y refresca el formulario
+
+**Test del parser**: `ParsearRespuesta` tolera cercas markdown (`\`\`\`json`), texto alrededor del JSON y claves ausentes (todo nulo). `InternalsVisibleTo` habilitado para Digesto.Tests.

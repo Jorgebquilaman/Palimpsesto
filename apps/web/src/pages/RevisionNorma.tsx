@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, tokenActual } from '../api/adminApi'
+import { completarConAi, ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, pedirAiEstado, tokenActual } from '../api/adminApi'
 import type { NormaAdminDetalle } from '../api/adminApi'
 
 export default function RevisionNorma() {
@@ -108,6 +108,20 @@ export default function RevisionNorma() {
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
   })
 
+  const completarAi = useMutation({
+    mutationFn: () => completarConAi(id),
+    onSuccess: (r) => {
+      const campos = r.camposAplicados.length > 0 ? `Campos: ${r.camposAplicados.join(', ')}` : ''
+      const relaciones = r.relacionesCreadas.length > 0
+        ? ` · relaciones: ${r.relacionesCreadas.map(x => `${x.tipoRelacion} ${x.codigoDestino}`).join(', ')}`
+        : ''
+      setMensaje(`AI completó la información. ${campos}${relaciones}`)
+      void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
+      void cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] })
+    },
+    onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
+  })
+
   const guardarFragmentos = useMutation({
     mutationFn: (fragmentos: { orden: number; texto: string; html: string | null; etiqueta: string | null }[]) =>
       pedirAdmin(`/admin/normas/${id}/fragmentos`, { method: 'PUT', body: JSON.stringify(fragmentos) }),
@@ -119,6 +133,11 @@ export default function RevisionNorma() {
   })
 
   const codigoNormalizado = normaa?.codigoNormalizado ?? ''
+
+  const { data: estadoAi } = useQuery({
+    queryKey: ['ai-estado'],
+    queryFn: pedirAiEstado,
+  })
 
   const { data: pdfUrl } = useQuery({
     queryKey: ['admin-norma-pdf', id],
@@ -169,6 +188,10 @@ export default function RevisionNorma() {
         </span>
         {norma.textoOrigen === 'ocr' && <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">texto OCR</span>}
         <div className="ml-auto flex gap-2">
+          <button onClick={() => completarAi.mutate()} disabled={!estadoAi?.configurada || completarAi.isPending}
+            className="btn-acento" title={!estadoAi?.configurada ? 'Configurá la clave en Inteligencia artificial' : 'Completar metadatos, resumen y relaciones con DeepSeek'}>
+            <span aria-hidden="true">✦</span> {completarAi.isPending ? 'Consultando a la AI…' : 'Completar con AI'}
+          </button>
           <button onClick={() => reprocesar.mutate()} className="btn-secundario">
             Reprocesar
           </button>
