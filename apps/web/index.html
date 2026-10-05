@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Digesto Normativo IUPA</title>
+    <script>
+      (function () {
+        try {
+          var tema = localStorage.getItem('digesto-tema')
+          oscuro();
+          function oscuro() {
+            var modoOscuro = tema === 'oscuro'
+              || (!tema && window.matchMedia('(prefers-color-scheme: dark)').matches)
+            if (modoOscuro) {
+              document.documentElement.classList.add('dark')
+            }
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

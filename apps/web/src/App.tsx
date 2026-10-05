@@ -8,11 +8,14 @@ import RevisionNorma from './pages/RevisionNorma'
 import CatalogosAdmin from './pages/CatalogosAdmin'
 import AuditoriaAdmin from './pages/AuditoriaAdmin'
 import UsuariosAdmin from './pages/UsuariosAdmin'
+import Styleguide from './pages/Styleguide'
+import { Cabecera } from './components/Cabecera'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/styleguide" element={<Styleguide />} />
         <Route path="/" element={<Busqueda />} />
         <Route path="/normas/:codigo" element={<Norma />} />
         <Route path="/boletin" element={<Boletin />} />
