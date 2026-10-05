@@ -15,6 +15,9 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Instalar poppler (pdftotext/pdfinfo para tests de ingesta)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
       - name: Restore
         run: dotnet restore
 

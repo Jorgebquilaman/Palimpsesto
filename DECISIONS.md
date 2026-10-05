@@ -55,3 +55,23 @@ Los claim mappings de JwtBearer transforman `sub`/`unique_name`; emitir directam
 
 **2026-10-04 — Testcontainers en cada clase de fixture.**
 `MigracionYBusquedaFixture` levanta un postgres:16-alpine por corrida de clase (poco más de 1 s). Compartir contenedor entre clases complica el orden de tests; el costo es bajo para el volumen esperado.
+
+## Hito 2 — Ingesta con texto nativo
+
+**2026-10-04 — PDF de prueba generado programáticamente (`PdfFabrica`).**
+Se construye un PDF 1.4 mínimo (Catalog/Pages/Page/Font/ContentStream con `Tj`) con codificación WinAnsi y escapes octales para acentos. Evita dependencias de librerías de generación de PDF para fixtures y funciona igual en local (poppler de Homebrew) y en CI (apt poppler-utils).
+
+**2026-10-04 — `IFileStorage.Root` expuesto como propiedad de la interfaz.**
+El pipeline necesita la ruta absoluta para pasarla a `pdfinfo`/`pdftotext`; sin `Root` cada componente resolvía su propia raíz por separado y divergían. Alternativa descartada: inyectar `FileStorageLocal` concreto (acopla a la implementación local).
+
+**2026-10-04 — Sugerencias de metadatos se aplican sobre la norma borrador, no sobre un campo aparte.**
+La pantalla de revisión del backoffice mostrará los valores actuales de la norma; el editor los corrige antes de publicar. Guardarlos aparte duplicaría estado. `Numero = 0` y un `codigo_normalizado` provisional único evitan romper la unicidad mientras el usuario confirma los datos reales.
+
+**2026-10-04 — Worker reclama la cola con `UPDATE ... RETURNING id ... FOR UPDATE SKIP LOCKED`.**
+Una sola sentencia atómica: reclama, marca `en_curso` y devuelve ids. Límite de 20 por ciclo para no acaparar todos los procesos.
+
+**2026-10-04 — La validación de magic bytes corre en el upload y de nuevo en el worker.**
+El upload valida el stream recibido; el worker revalida el archivo guardado (defensa en profundidad: la copia en disco es la fuente de verdad del pipeline).
+
+**2026-10-04 — AngleSharp para el sanitizador (allowlist).**
+Servidor-side con allowlist de etiquetas/atributos; DOMPurify queda para el cliente (hitos de frontend). AngleSharp 1.5.0 parchea la vulnerabilidad moderada de 1.1.x (GHSA-pgww-w46g-26qg).

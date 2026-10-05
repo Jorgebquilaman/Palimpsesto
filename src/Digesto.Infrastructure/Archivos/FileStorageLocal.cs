@@ -5,6 +5,8 @@ namespace Digesto.Infrastructure.Archivos;
 
 public class FileStorageLocal : IFileStorage
 {
+    public string Root => _root;
+
     private readonly string _root;
 
     public FileStorageLocal(string root)

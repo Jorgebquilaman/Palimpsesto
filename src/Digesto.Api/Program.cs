@@ -75,6 +75,9 @@ try
     builder.Services.AddHealthChecks()
         .AddNpgSql(cadenaConexion, tags: new[] { "db" });
 
+    builder.Services.Configure<Digesto.Infrastructure.Ingesta.IngestaOpciones>(
+        builder.Configuration.GetSection("Ingesta"));
+
     builder.Services.AddScoped<TokenGenerator>();
 
     var app = builder.Build();

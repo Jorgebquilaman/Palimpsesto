@@ -1,10 +1,10 @@
 using Digesto.Domain.Enums;
 using Digesto.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -64,10 +64,18 @@ public class IngestaWorker : BackgroundService
         {
             try
             {
-                var procesados = await ProcesarPendientesAsync(stoppingToken);
-                if (procesados == 0)
+                var ids = await ReclamarPendientesAsync(stoppingToken);
+                if (ids.Count == 0)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                    continue;
+                }
+
+                await using var scope = _services.CreateAsyncScope();
+                var pipeline = scope.ServiceProvider.GetRequiredService<Digesto.Infrastructure.Ingesta.PipelineIngesta>();
+                foreach (var id in ids)
+                {
+                    await pipeline.ProcesarAsync(id, stoppingToken);
                 }
             }
             catch (OperationCanceledException)
@@ -81,28 +89,23 @@ public class IngestaWorker : BackgroundService
         }
     }
 
-    private async Task<int> ProcesarPendientesAsync(CancellationToken ct)
+    private async Task<List<long>> ReclamarPendientesAsync(CancellationToken ct)
     {
         await using var scope = _services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<Digesto.Infrastructure.Persistencia.DigestoDbContext>();
 
-        await using var transaccion = await db.Database.BeginTransactionAsync(ct);
-
-        var pendientes = await db.ProcesosIngesta
-            .Where(p => p.Estado == EstadoProceso.Pendiente)
-            .OrderBy(p => p.Id)
-            .ToListAsync(ct);
-
-        foreach (var proceso in pendientes)
-        {
-            proceso.Estado = EstadoProceso.EnCurso;
-            proceso.Etapa = "validar";
-            proceso.LockedAt = DateTime.UtcNow;
-        }
-        await db.SaveChangesAsync(ct);
-        await transaccion.CommitAsync(ct);
-
-        _logger.LogInformation("Worker: {Cantidad} procesos marcados en curso (procesamiento real en hito 2)", pendientes.Count);
-        return pendientes.Count;
+        var ids = (await db.Database.SqlQuery<long>($"""
+            UPDATE proceso_ingesta
+            SET estado = {(int)EstadoProceso.EnCurso}::int, locked_at = now()
+            WHERE id IN (
+                SELECT id FROM proceso_ingesta
+                WHERE estado = {(int)EstadoProceso.Pendiente}::int
+                ORDER BY id
+                LIMIT 20
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING id AS "Value"
+            """).ToListAsync(ct));
+        return ids;
     }
 }
