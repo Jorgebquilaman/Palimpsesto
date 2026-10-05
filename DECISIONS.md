@@ -335,3 +335,9 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 ## Sin OCR en el pipeline
 
 **Decisión del usuario**: los PDFs sin texto nativo (escaneos/imágenes) **no se procesan con OCR** — el pipeline los rechaza con mensaje claro y quedan para "Completar con AI" (que lee el PDF original con el modelo de visión) + corrección manual. Se eliminó la etapa OCR y `ProcesarOcrAsync` de `PipelineIngesta` (la clase `OcrmypdfServicio` queda en el repo pero sin uso en el flujo). `TextoOrigen` ya no pasa a `Ocr`.
+
+## PDF del boletín oficial
+
+**Subida**: `POST /admin/boletines/{id}/pdf` (multipart, PDF hasta 50 MB) — valida tipo/tamaño, guarda con IFileStorage y registra sha256, bytes, nombre y storage_key en columnas nuevas de `boletin` (pdf_nombre/pdf_storage_key/pdf_sha256/pdf_bytes; migración BoletinPdf). Un boletín tiene un único PDF; subir de nuevo lo reemplaza (queda auditado).
+
+**Descarga pública**: `GET /boletines/{numero}/pdf` con range processing; 404 claro si el boletín no tiene PDF. El listado admin expone `tienePdf` para mostrar enlace o botón de subida en la fila.

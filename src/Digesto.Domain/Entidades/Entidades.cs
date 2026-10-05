@@ -52,6 +52,10 @@ public class Boletin
     public DateOnly FechaPublicacion { get; set; }
     public Guid? ArchivoId { get; set; }
     public string? Observaciones { get; set; }
+    public string? PdfNombre { get; set; }
+    public string? PdfStorageKey { get; set; }
+    public string? PdfSha256 { get; set; }
+    public long? PdfBytes { get; set; }
 
     public virtual ICollection<Norma> Normas { get; set; } = new List<Norma>();
 }

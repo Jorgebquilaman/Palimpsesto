@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { pedirAdmin } from '../api/adminApi'
+import { pedirAdmin, subirPdfBoletin } from '../api/adminApi'
 import { TituloSeccion } from '../components/ui'
 
 interface BoletinLista {
   id: number
   numero: string
   fechaPublicacion: string
+  observaciones: string | null
   totalNormas: number
+  tienePdf: boolean
 }
 
 export default function AdminBoletines() {
@@ -23,6 +25,21 @@ export default function AdminBoletines() {
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
   const [observaciones, setObservaciones] = useState('')
   const [mensaje, setMensaje] = useState('')
+
+  const [subiendoPdf, setSubiendoPdf] = useState<number | null>(null)
+
+  async function subirPdf(boletinId: number, archivo: File) {
+    setSubiendoPdf(boletinId)
+    try {
+      await subirPdfBoletin(boletinId, archivo)
+      setMensaje('PDF del boletín cargado')
+      void cliente.invalidateQueries({ queryKey: ['admin-boletines'] })
+    } catch (e) {
+      setMensaje(`Error: ${(e as Error).message}`)
+    } finally {
+      setSubiendoPdf(null)
+    }
+  }
 
   const crear = useMutation({
     mutationFn: () => pedirAdmin('/admin/boletines', {
@@ -81,13 +98,28 @@ export default function AdminBoletines() {
         {boletines && (
           <ul className="panel divide-y divide-line">
             {boletines.items.map(b => (
-              <li key={b.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <li key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
                 <span className="font-semibold">{b.numero}</span>
                 <span className="num-tabulares text-ink-soft">{b.fechaPublicacion}</span>
+                {b.tienePdf
+                  ? <a href={`/api/v1/boletines/${encodeURIComponent(b.numero)}/pdf`} target="_blank" rel="noreferrer"
+                      className="text-xs underline text-vigente-texto">⇩ PDF</a>
+                  : <span className="text-xs text-ink-faint">sin PDF</span>}
                 <span className="ml-auto text-xs text-ink-faint">{b.totalNormas} normas</span>
+                <label className="text-xs underline text-ink-faint hover:text-ink cursor-pointer">
+                  {subiendoPdf === b.id ? 'Subiendo…' : (b.tienePdf ? 'reemplazar PDF' : 'subir PDF')}
+                  <input type="file" accept="application/pdf" className="sr-only"
+                    disabled={subiendoPdf === b.id}
+                    onChange={(e) => {
+                      const archivo = e.target.files?.[0]
+                      if (archivo) void subirPdf(b.id, archivo)
+                      e.target.value = ''
+                    }} />
+                </label>
                 <Link to={`/boletines/${encodeURIComponent(b.numero)}`} className="text-xs underline text-ink-faint hover:text-ink">
                   ver
                 </Link>
+                {b.observaciones && <p className="w-full text-xs text-ink-faint">{b.observaciones}</p>}
               </li>
             ))}
             {boletines.items.length === 0 && <li className="px-4 py-3 text-sm text-ink-faint">Aún no hay boletines.</li>}

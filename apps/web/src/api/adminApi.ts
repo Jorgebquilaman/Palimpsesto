@@ -259,3 +259,27 @@ export function completarConAiStream(
     }
   })
 }
+
+export interface BoletinAdmin {
+  id: number
+  numero: string
+  fechaPublicacion: string
+  observaciones: string | null
+  totalNormas: number
+  tienePdf: boolean
+}
+
+export async function subirPdfBoletin(id: number, archivo: File): Promise<unknown> {
+  const datos = new FormData()
+  datos.append('archivo', archivo)
+  const respuesta = await fetch('/api/v1/admin/boletines/' + id + '/pdf', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + (tokenActual() ?? '') },
+    body: datos,
+  })
+  if (!respuesta.ok) {
+    const cuerpo = await respuesta.json().catch(() => null)
+    throw new Error(cuerpo?.detail ?? 'No se pudo subir el PDF')
+  }
+  return await respuesta.json()
+}

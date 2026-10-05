@@ -1,3 +1,4 @@
+using Digesto.Application.Archivos;
 using Digesto.Domain.Enums;
 using Digesto.Infrastructure.Persistencia;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +11,12 @@ namespace Digesto.Api.Controllers;
 public class BoletinesController : ControllerBase
 {
     private readonly DigestoDbContext _db;
+    private readonly IFileStorage _fileStorage;
 
-    public BoletinesController(DigestoDbContext db)
+    public BoletinesController(DigestoDbContext db, IFileStorage fileStorage)
     {
         _db = db;
+        _fileStorage = fileStorage;
     }
 
     [HttpGet("boletines")]
@@ -33,10 +36,31 @@ public class BoletinesController : ControllerBase
                 b.FechaPublicacion,
                 b.Observaciones,
                 TotalNormas = _db.Normas.Count(n => n.BoletinId == b.Id),
+                TienePdf = b.PdfStorageKey != null,
             })
             .ToListAsync(ct);
 
         return Ok(new { total, items });
+    }
+
+    [HttpGet("boletines/{numero}/pdf")]
+    public async Task<IActionResult> DescargarPdf(string numero, CancellationToken ct)
+    {
+        var boletin = await _db.Boletines
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Numero == numero, ct);
+        if (boletin is null)
+        {
+            return Problem(statusCode: 404, detail: "Boletín no encontrado");
+        }
+
+        if (boletin.PdfStorageKey is null or { Length: 0 })
+        {
+            return Problem(statusCode: 404, detail: "Este boletín todavía no tiene PDF cargado");
+        }
+
+        var stream = await _fileStorage.AbrirAsync(boletin.PdfStorageKey, ct);
+        return File(stream, "application/pdf", boletin.PdfNombre ?? $"boletin-{boletin.Numero}.pdf", enableRangeProcessing: true);
     }
 
     [HttpGet("boletines/{numero}")]

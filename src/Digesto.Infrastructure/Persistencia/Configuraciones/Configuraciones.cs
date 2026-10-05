@@ -78,6 +78,10 @@ public class BoletinConfig : IEntityTypeConfiguration<Boletin>
         b.Property(x => x.FechaPublicacion).HasColumnName("fecha_publicacion");
         b.Property(x => x.ArchivoId).HasColumnName("archivo_id");
         b.Property(x => x.Observaciones).HasColumnName("observaciones");
+        b.Property(x => x.PdfNombre).HasColumnName("pdf_nombre").HasMaxLength(300);
+        b.Property(x => x.PdfStorageKey).HasColumnName("pdf_storage_key").HasMaxLength(300);
+        b.Property(x => x.PdfSha256).HasColumnName("pdf_sha256").HasMaxLength(64);
+        b.Property(x => x.PdfBytes).HasColumnName("pdf_bytes");
         b.HasIndex(x => x.Numero).IsUnique().HasDatabaseName("ix_boletin_numero");
     }
 }

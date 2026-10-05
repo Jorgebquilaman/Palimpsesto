@@ -1,3 +1,4 @@
+using Digesto.Application.Archivos;
 using Digesto.Domain.Entidades;
 using Digesto.Domain.Enums;
 using Digesto.Infrastructure;
@@ -14,10 +15,12 @@ namespace Digesto.Api.Controllers;
 public class RelacionesController : ControllerBase
 {
     private readonly DigestoDbContext _db;
+    private readonly IFileStorage _fileStorage;
 
-    public RelacionesController(DigestoDbContext db)
+    public RelacionesController(DigestoDbContext db, IFileStorage fileStorage)
     {
         _db = db;
+        _fileStorage = fileStorage;
     }
 
     [HttpPost("normas/{id:guid}/relaciones")]
@@ -96,6 +99,51 @@ public class RelacionesController : ControllerBase
         _db.Boletines.Add(boletin);
         await _db.SaveChangesAsync(ct);
         return StatusCode(201, new { boletin.Id, boletin.Numero, boletin.FechaPublicacion });
+    }
+
+    [HttpPost("boletines/{id:int}/pdf")]
+    [RequestSizeLimit(60_000_000)]
+    public async Task<IActionResult> SubirPdfBoletin(int id, IFormFile archivo, CancellationToken ct)
+    {
+        if (archivo is null || archivo.Length == 0)
+        {
+            return Problem(statusCode: 400, detail: "No se recibió el PDF del boletín");
+        }
+
+        var esPdf = (archivo.ContentType == "application/pdf" || archivo.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            && archivo.Length <= 50L * 1024 * 1024;
+        if (!esPdf)
+        {
+            return Problem(statusCode: 400, detail: "El archivo debe ser un PDF de hasta 50 MB");
+        }
+
+        var boletin = await _db.Boletines.FindAsync(new object[] { id }, ct);
+        if (boletin is null)
+        {
+            return Problem(statusCode: 404, detail: "Boletín no encontrado");
+        }
+
+        await using var stream = archivo.OpenReadStream();
+        var guardado = await _fileStorage.GuardarAsync(stream, archivo.FileName, ct);
+
+        var sha256 = Convert.ToHexString(await System.Security.Cryptography.SHA256.HashDataAsync(
+            archivo.OpenReadStream(), ct)).ToLowerInvariant();
+
+        boletin.PdfNombre = archivo.FileName;
+        boletin.PdfStorageKey = guardado.StorageKey;
+        boletin.PdfSha256 = sha256;
+        boletin.PdfBytes = guardado.Bytes;
+
+        _db.Auditorias.Add(new Auditoria
+        {
+            Usuario = User.Identity?.Name ?? "desconocido",
+            Entidad = "boletin",
+            EntidadId = boletin.Numero,
+            Accion = "subir_pdf",
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { boletin.Id, boletin.PdfNombre, boletin.PdfBytes });
     }
 
     [HttpDelete("boletines/{id:int}")]
