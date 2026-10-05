@@ -163,6 +163,7 @@ export default function Norma() {
 
           <div className="mt-4">
             {pestana === 'texto' && texto && (
+              <>
               <div className={texto.fragmentos.length > 0 ? "grid gap-4 md:grid-cols-[260px_1fr]" : "grid gap-4"}>
                 {norma.resumen && (
                   <section aria-label="Resumen de la norma" className="panel p-5 md:col-span-2">
@@ -195,11 +196,6 @@ export default function Norma() {
                       placeholder="término" />
                   </label>
                 </aside>
-                <div role="note" className="mb-4 rounded-md border border-acento/40 bg-barro-100/50 px-4 py-3 text-sm text-ink">
-                  <strong>Nota:</strong> este texto es una transcripción con fines de lectura. En caso de
-                  diferencia con el documento original firmado, <strong>prevalece el PDF</strong> de la
-                  solapa «PDF original».
-                </div>
                 <section aria-label="Texto de la norma" className="panel p-6">
                   <TextoNorma
                     fragmentos={texto.fragmentos}
@@ -209,6 +205,14 @@ export default function Norma() {
                 </>
                 )}
               </div>
+              <footer className="no-print mt-6 border-t border-line pt-3 text-xs text-ink-faint">
+                <p role="note">
+                  <strong>Nota:</strong> este texto es una transcripción con fines de lectura. En caso de
+                  diferencia con el documento original firmado, <strong>prevalece el PDF</strong> de la
+                  solapa «PDF original».
+                </p>
+              </footer>
+              </>
             )}
 
             {pestana === 'pdf' && norma && <VisorPdf pdfUrl={`/api/v1/normas/${encodeURIComponent(norma.codigoNormalizado)}/pdf`} />}
