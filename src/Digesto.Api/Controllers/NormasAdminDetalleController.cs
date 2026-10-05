@@ -62,7 +62,7 @@ public class NormasAdminDetalleController : ControllerBase
                 n.Numero,
                 n.Anio,
                 n.Titulo,
-                n.FechaSancion,
+                FechaSancion = n.FechaSancion == DateOnly.MinValue ? (DateOnly?)null : n.FechaSancion,
                 Estado = EstadoSnakeFmt.EstadoSnake(n.EstadoPublicacion),
                 n.Visibilidad,
                 n.Vigencia,
@@ -103,7 +103,7 @@ public class NormasAdminDetalleController : ControllerBase
             norma.Resumen,
             norma.PalabrasClave,
             norma.Expediente,
-            norma.FechaSancion,
+            FechaSancion = norma.FechaSancion == DateOnly.MinValue ? (DateOnly?)null : norma.FechaSancion,
             norma.FechaPublicacion,
             norma.BoletinId,
             Vigencia = norma.Vigencia.ToString().ToLowerInvariant(),
@@ -139,7 +139,7 @@ public class NormasAdminDetalleController : ControllerBase
             norma.Anio,
             norma.Sufijo,
             norma.Titulo,
-            norma.FechaSancion,
+            FechaSancion = norma.FechaSancion == DateOnly.MinValue ? (DateOnly?)null : norma.FechaSancion,
             norma.FechaPublicacion,
             norma.Resumen,
             norma.Expediente,
@@ -169,7 +169,7 @@ public class NormasAdminDetalleController : ControllerBase
             norma.Anio,
             norma.Sufijo,
             norma.Titulo,
-            norma.FechaSancion,
+            FechaSancion = norma.FechaSancion == DateOnly.MinValue ? (DateOnly?)null : norma.FechaSancion,
             norma.FechaPublicacion,
             norma.Resumen,
             norma.Expediente,
@@ -285,6 +285,76 @@ public class NormasAdminDetalleController : ControllerBase
     [HttpPost("{id:guid}/archivar")]
     public async Task<IActionResult> Archivar(Guid id, CancellationToken ct) =>
         await CambiarEstado(id, EstadoPublicacion.Archivada, ct);
+
+    [HttpPost("{id:guid}/limpiar")]
+    public async Task<IActionResult> Limpiar(Guid id, CancellationToken ct)
+    {
+        var norma = await _db.Normas.FindAsync(new object[] { id }, ct);
+        if (norma is null)
+        {
+            return Problem(statusCode: 404, detail: "Norma no encontrada");
+        }
+
+        norma.Titulo = string.Empty;
+        norma.Resumen = null;
+        norma.PalabrasClave = null;
+        norma.Expediente = null;
+        norma.FechaSancion = DateOnly.MinValue;
+        norma.ActualizadoEn = DateTime.UtcNow;
+        norma.ActualizadoPor = User.Identity?.Name ?? "desconocido";
+
+        _db.Auditorias.Add(new Auditoria
+        {
+            Usuario = User.Identity?.Name ?? "desconocido",
+            Entidad = "norma",
+            EntidadId = norma.Id.ToString(),
+            Accion = "limpiar_datos",
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { norma.Id });
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Eliminar(Guid id, CancellationToken ct)
+    {
+        var norma = await _db.Normas
+            .Include(n => n.Archivos)
+            .Include(n => n.Fragmentos)
+            .FirstOrDefaultAsync(n => n.Id == id, ct);
+        if (norma is null)
+        {
+            return Problem(statusCode: 404, detail: "Norma no encontrada");
+        }
+
+        var relaciones = await _db.NormasRelaciones
+            .Where(r => r.NormaOrigenId == id || r.NormaDestinoId == id)
+            .ToListAsync(ct);
+        _db.NormasRelaciones.RemoveRange(relaciones);
+
+        var claves = norma.Archivos.Select(a => a.StorageKey).ToList();
+        _db.NormasArchivos.RemoveRange(norma.Archivos);
+        _db.NormasFragmentos.RemoveRange(norma.Fragmentos);
+        _db.Normas.Remove(norma);
+
+        _db.Auditorias.Add(new Auditoria
+        {
+            Usuario = User.Identity?.Name ?? "desconocido",
+            Entidad = "norma",
+            EntidadId = norma.Id.ToString(),
+            Accion = "eliminar",
+            Antes = norma.CodigoNormalizado,
+        });
+
+        await _db.SaveChangesAsync(ct);
+
+        foreach (var clave in claves)
+        {
+            await _fileStorage.EliminarAsync(clave, ct);
+        }
+
+        return NoContent();
+    }
 
     private async Task<IActionResult> CambiarEstado(Guid id, EstadoPublicacion destino, CancellationToken ct)
     {

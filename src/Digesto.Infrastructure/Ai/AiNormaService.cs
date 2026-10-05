@@ -97,6 +97,11 @@ public partial class AiNormaService : IAiNormaService
                 cada una como { "tipo": código, "numero": entero, "anio": entero, "tipo_relacion": "modifica|deroga|derogaparcialmente|reglamenta|complementa|ratifica|dejainsineffecto" }
             }
             Si un dato no aparece en el texto, usá null (o array vacío para citas). No inventes datos.
+            PROHIBIDO inventar información: basate únicamente en lo que se ve en el documento.
+            - El resumen solo puede afirmar lo que el documento establece; no menciones artículos,
+              plazos, montos, plazos ni números de artículo que no figuren literalmente en el documento.
+            - Si la norma no tiene artículos, no menciones artículos en el resumen.
+            - No uses conocimiento externo ni suposiciones: si algo no está, null.
             """;
 
         var usuario = $"""

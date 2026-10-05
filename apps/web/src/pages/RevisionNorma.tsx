@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { ResultadoAi } from '../api/adminApi'
+import { limpiarNorma, eliminarNorma } from '../api/adminApi'
 import { completarConAi, ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, pedirAiEstado, tokenActual } from '../api/adminApi'
 import type { NormaAdminDetalle } from '../api/adminApi'
 
@@ -30,6 +31,7 @@ export default function RevisionNorma() {
   const [mensaje, setMensaje] = useState('')
   const [confirmado, setConfirmado] = useState(false)
   const [aiModal, setAiModal] = useState<{ fase: 'proceso' | 'exito' | 'error'; resultado?: ResultadoAi; error?: string } | null>(null)
+  const [confirmar, setConfirmar] = useState<{ titulo: string; detalle: string; accion: 'limpiar' | 'eliminar' } | null>(null)
 
   useEffect(() => {
     if (normaa && Object.keys(formulario).length === 0) {
@@ -134,6 +136,27 @@ export default function RevisionNorma() {
       void cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] })
     },
     onError: (e) => setAiModal({ fase: 'error', error: (e as Error).message }),
+  })
+
+  const accionConfirmada = useMutation({
+    mutationFn: async () => {
+      if (confirmar?.accion === 'limpiar') return await limpiarNorma(id)
+      return await eliminarNorma(id)
+    },
+    onSuccess: () => {
+      if (confirmar?.accion === 'limpiar') {
+        setConfirmar(null)
+        setMensaje('Datos en blanco')
+        void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
+      } else {
+        void cliente.invalidateQueries({ queryKey: ['admin-normas'] })
+        window.location.assign('/admin/normas')
+      }
+    },
+    onError: (e) => {
+      setMensaje(`Error: ${(e as Error).message}`)
+      setConfirmar(null)
+    },
   })
 
   const codigoNormalizado = normaa?.codigoNormalizado ?? ''
@@ -344,8 +367,52 @@ export default function RevisionNorma() {
               ))}
             </div>
           </section>
+
+          <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+            <button
+              onClick={() => setConfirmar({
+                titulo: '¿Poner los datos en blanco?',
+                detalle: 'Se borran título, resumen, palabras clave, expediente y fecha de sanción de esta norma. Los fragmentos y el PDF no se tocan.',
+                accion: 'limpiar',
+              })}
+              className="btn-secundario"
+            >
+              Poner en blanco los datos
+            </button>
+            <button
+              onClick={() => setConfirmar({
+                titulo: '¿Eliminar la norma?',
+                detalle: `Se elimina ${norma.codigoNormalizado} con sus fragmentos, relaciones, procesos y los PDF asociados. No se puede deshacer.`,
+                accion: 'eliminar',
+              })}
+              className="rounded-lg bg-[var(--derogada)] px-3 py-1.5 text-sm font-semibold text-[var(--crema-50)] hover:opacity-90"
+            >
+              Eliminar norma
+            </button>
+          </div>
         </section>
       </div>
+
+      {confirmar && (
+        <div role="dialog" aria-modal="true" aria-labelledby="titulo-confirmar" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="panel max-w-sm p-6 shadow-xl">
+            <h2 id="titulo-confirmar" className="mb-2 text-lg font-bold">{confirmar.titulo}</h2>
+            <p className="mb-4 text-sm text-ink-soft">{confirmar.detalle}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmar(null)} className="btn-secundario">Cancelar</button>
+              <button
+                onClick={() => accionConfirmada.mutate()}
+                disabled={accionConfirmada.isPending}
+                className={confirmar.accion === 'eliminar'
+                  ? 'rounded-lg bg-[var(--derogada)] px-4 py-1.5 text-sm font-semibold text-[var(--crema-50)] hover:opacity-90 disabled:opacity-50'
+                  : 'btn-acento'}
+              >
+                {accionConfirmada.isPending ? 'Procesando…' : (confirmar.accion === 'eliminar' ? 'Eliminar definitivamente' : 'Poner en blanco')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {aiModal && (
         <div
           role="dialog"

@@ -319,3 +319,9 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 **Costo**: el modelo de visión factura por dimensiones de imagen como tokens de entrada. 150 dpi y máx 8 páginas acota el gasto por norma.
 
 **Requisitos**: `poppler-utils` en la imagen de la API (Dockerfile.api). Modelos actuales de DeepSeek (v4): `deepseek-v4-flash`, `deepseek-v4-pro`, `deepseek-v4-flash-vision-exp`; los viejos `deepseek-chat/reasoner` quedaron obsoletos en la API pública.
+
+## Limpiar y eliminar normas
+
+**`POST /admin/normas/{id}/limpiar`**: pone en blanco el contenido (título, resumen, palabras clave, expediente, fecha de sanción) manteniendo identidad (tipo/órgano/número/año). `FechaSancion` usa `DateOnly.MinValue` como sentinel "sin fecha" (el dominio la tiene no-nullable); tanto el detalle admin como el GET público la serializan como null cuando vale MinValue.
+
+**`DELETE /admin/normas/{id}`**: elimina la norma con fragmentos, relaciones (ambas direcciones), archivos (filas y archivos físicos en el volumen) y registra auditoría. Botón "Eliminar norma" en backoffice con confirmación previa.

@@ -195,3 +195,11 @@ export function probarAi(): Promise<{ ok: boolean; detalle: string }> {
 export function completarConAi(normaId: string): Promise<ResultadoAi> {
   return pedirAdmin<ResultadoAi>(`/admin/ai/normas/${normaId}/completar`, { method: 'POST' })
 }
+
+export function limpiarNorma(normaId: string): Promise<unknown> {
+  return pedirAdmin(`/admin/normas/${normaId}/limpiar`, { method: 'POST' })
+}
+
+export function eliminarNorma(normaId: string): Promise<unknown> {
+  return pedirAdmin(`/admin/normas/${normaId}`, { method: 'DELETE' })
+}

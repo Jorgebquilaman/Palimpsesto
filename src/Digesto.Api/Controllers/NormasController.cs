@@ -92,7 +92,7 @@ public class NormasController : ControllerBase
                 n.Resumen,
                 n.PalabrasClave,
                 n.Expediente,
-                n.FechaSancion,
+                FechaSancion = n.FechaSancion == DateOnly.MinValue ? (DateOnly?)null : n.FechaSancion,
                 n.FechaPublicacion,
                 Boletin = n.Boletin == null ? null : new { n.Boletin.Numero, n.Boletin.FechaPublicacion },
                 Vigencia = n.Vigencia.ToString().ToLowerInvariant(),
