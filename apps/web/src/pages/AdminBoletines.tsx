@@ -18,7 +18,7 @@ export default function AdminBoletines() {
 
   const { data: boletines, isPending, isError, error } = useQuery({
     queryKey: ['admin-boletines'],
-    queryFn: () => pedirAdmin<{ items: BoletinLista[] }>('/boletines?page=1'),
+    queryFn: () => pedirAdmin<{ items: BoletinLista[] }>('/boletines?page=1&pageSize=50'),
   })
 
   const [numero, setNumero] = useState('')
