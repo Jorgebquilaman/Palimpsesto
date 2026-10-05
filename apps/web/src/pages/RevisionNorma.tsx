@@ -118,18 +118,21 @@ export default function RevisionNorma() {
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
   })
 
+  const codigoNormalizado = normaa?.codigoNormalizado ?? ''
+
+  const { data: relaciones } = useQuery({
+    queryKey: ['admin-norma-relaciones', id, codigoNormalizado],
+    queryFn: () => pedirAdmin<{
+      origen: { id: number; tipo: string; detalle: string | null; normaDestino: { codigoNormalizado: string; titulo: string } }[]
+      destino: { id: number; tipo: string; detalle: string | null; normaOrigen: { codigoNormalizado: string; titulo: string } }[]
+    }>(`/normas/${encodeURIComponent(codigoNormalizado)}/relaciones`),
+    enabled: !!normaa,
+  })
+
   if (isPending) return <p aria-live="polite">Cargando…</p>
   if (isError) return <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>
 
   const norma = normaa!
-
-  const { data: relaciones } = useQuery({
-    queryKey: ['admin-norma-relaciones', id, norma.codigoNormalizado],
-    queryFn: () => pedirAdmin<{
-      origen: { id: number; tipo: string; detalle: string | null; normaDestino: { codigoNormalizado: string; titulo: string } }[]
-      destino: { id: number; tipo: string; detalle: string | null; normaOrigen: { codigoNormalizado: string; titulo: string } }[]
-    }>(`/normas/${encodeURIComponent(norma.codigoNormalizado)}/relaciones`),
-  })
 
   return (
     <div className="space-y-4">

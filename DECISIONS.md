@@ -223,3 +223,7 @@ Un contenedor con SOLO red interna no recibe `PortBindings` en el host (Docker l
 **Boletín**: items de listado con fecha a la derecha (baseline), borde acento al seleccionar.
 
 Todo con radios y colores de tokens; el contraste WCAG AA sigue pasando (15 pares) porque el pase no tocó los pares de texto/fondo validados.
+
+## Fix — React error #310 (hooks desbalanceados)
+
+**La consulta de relaciones en `RevisionNorma` estaba después de los `return` tempranos (`isPending`/`isError`)**: al pasar de cargando a datos, el componente renderizaba con un hook más y React cortaba con #310. Regla aplicada: TODOS los hooks arriba del componente, sin excepción; las dependencias condicionales se logran con `enabled` de TanStack Query, nunca con returns tempranos antes de hooks. Verifiqué el resto de las pantallas: ninguna tenía el patrón.
