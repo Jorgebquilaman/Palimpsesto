@@ -201,7 +201,7 @@ namespace Digesto.Infrastructure.Migrations
                     codigo_normalizado = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false),
                     titulo = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     resumen = table.Column<string>(type: "text", nullable: true),
-                    palabras_clave = table.Column<string[]>(type: "text[]", nullable: false),
+                    palabras_clave = table.Column<string[]>(type: "text[]", nullable: true),
                     expediente = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     fecha_sancion = table.Column<DateOnly>(type: "date", nullable: false),
                     fecha_publicacion = table.Column<DateOnly>(type: "date", nullable: true),
@@ -631,48 +631,6 @@ namespace Digesto.Infrastructure.Migrations
                 name: "ix_usuarios_roles_role_id",
                 table: "usuarios_roles",
                 column: "role_id");
-
-            migrationBuilder.Sql("""
-                CREATE TEXT SEARCH CONFIGURATION es_unaccent (COPY = spanish);
-                ALTER TEXT SEARCH CONFIGURATION es_unaccent
-                  ALTER MAPPING FOR hword, hword_part, word WITH unaccent, spanish_stem;
-
-                CREATE TEXT SEARCH CONFIGURATION simple_unaccent (COPY = simple);
-                ALTER TEXT SEARCH CONFIGURATION simple_unaccent
-                  ALTER MAPPING FOR hword, hword_part, word WITH unaccent, simple;
-                """);
-
-            migrationBuilder.Sql("""
-                ALTER TABLE norma_fragmento
-                  ADD COLUMN tsv_es  tsvector GENERATED ALWAYS AS (to_tsvector('es_unaccent',     coalesce(texto,''))) STORED,
-                  ADD COLUMN tsv_lit tsvector GENERATED ALWAYS AS (to_tsvector('simple_unaccent', coalesce(texto,''))) STORED;
-
-                CREATE INDEX ix_fragmento_tsv_es  ON norma_fragmento USING gin (tsv_es);
-                CREATE INDEX ix_fragmento_tsv_lit ON norma_fragmento USING gin (tsv_lit);
-                """);
-
-            migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION f_unir(text[]) RETURNS text
-                LANGUAGE sql IMMUTABLE STRICT AS
-                $$ SELECT array_to_string($1, ' ') $$;
-                """);
-
-            migrationBuilder.Sql("""
-                ALTER TABLE norma
-                  ADD COLUMN tsv_meta tsvector GENERATED ALWAYS AS (
-                    setweight(to_tsvector('es_unaccent', codigo_normalizado || ' ' || titulo), 'A')
-                    || setweight(to_tsvector('es_unaccent', coalesce(resumen,'') || ' ' || f_unir(palabras_clave)), 'B')
-                  ) STORED;
-
-                CREATE INDEX ix_norma_tsv_meta    ON norma USING gin (tsv_meta);
-                CREATE INDEX ix_norma_titulo_trgm ON norma USING gin (titulo gin_trgm_ops);
-                CREATE INDEX ix_norma_codigo_trgm ON norma USING gin (codigo_normalizado gin_trgm_ops);
-                """);
-
-            migrationBuilder.Sql("""
-                CREATE UNIQUE INDEX ix_norma_unicidad
-                  ON norma (tipo_norma_id, organo_emisor_id, numero, anio, coalesce(sufijo, ''));
-                """);
         }
 
         /// <inheritdoc />
@@ -734,9 +692,6 @@ namespace Digesto.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "tipo_norma");
-
-            migrationBuilder.Sql("DROP TEXT SEARCH CONFIGURATION IF EXISTS es_unaccent;");
-            migrationBuilder.Sql("DROP TEXT SEARCH CONFIGURATION IF EXISTS simple_unaccent;");
         }
     }
 }

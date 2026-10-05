@@ -75,3 +75,29 @@ El upload valida el stream recibido; el worker revalida el archivo guardado (def
 
 **2026-10-04 — AngleSharp para el sanitizador (allowlist).**
 Servidor-side con allowlist de etiquetas/atributos; DOMPurify queda para el cliente (hitos de frontend). AngleSharp 1.5.0 parchea la vulnerabilidad moderada de 1.1.x (GHSA-pgww-w46g-26qg).
+
+## Hito 3 — Búsqueda
+
+**2026-10-04 — `es_unaccent` y `simple_unaccent` eliminados; pre-unaccent con `f_unaccent` inmutable.**
+En PostgreSQL las cadenas de diccionarios (`WITH unaccent, spanish_stem`) se cortan en el primer diccionario que devuelve lexemas: unaccent no encadena al stemmer, así que `resoluciones` (ASCII, solo spanish_stem → `resolu`) y `resolución` (word, unaccent → `resolucion` sin stem) quedaban asimétricos. Solución: vectorizar el texto pre-unacentuado con `to_tsvector('spanish', f_unaccent(texto))`, donde `f_unaccent` es IMMUTABLE (válida para columnas generadas). Además el stemmer snowball español es asimétrico para la misma palabra acentuada vs plana (`resolución`→`resolu` pero `resolucion`→`resolucion`), por lo que `tsv_es` concatena el stem del texto original (acentos incluidos) y el del texto unacentuado: las búsquedas "resoluciones", "resolucion" y "resolución" matchean.
+
+**2026-10-04 — Consulta "cualquiera de las palabras" a mano con `to_tsquery` + `:*`.**
+Las palabras se unen con `|` y sufijo `:*` (prefijo). `websearch_to_tsquery` no admite el operador OR explícito por palabra; para el modo cualquiera conviene `to_tsquery`. Se citan las palabras con `quote_literal` antes de concatenarlas.
+
+**2026-10-04 — `ts_headline` solo sobre la página visible, con el tsquery de `spanish` sobre `f.texto`.**
+El headline tokeniza el texto original; si se busca con tsquery `simple` (literal "becas") contra un vector stemmed, no matchea. Se usa el mismo tsquery de la búsqueda principal para correr `ts_rank_cd` y elegir el mejor fragmento por norma con `DISTINCT ON`.
+
+**2026-10-04 — Citas directas: `CitaNormaParser` puro en Application con fallback a búsqueda full-text.**
+Patrones admitidos: `Res. 123/2024`, `Ord 45-2023`, `RES-CS-2024-0123`. Si matchea una única norma, se devuelve directo (total=1, `codigoCitaDirecta`); si no, se degrada a búsqueda normal. Test unitario posible sin base de datos.
+
+**2026-10-04 — El índice de unicidad es PARCIAL (`WHERE numero > 0`).**
+Los borradores recién subidos se crean con `numero = 0` hasta que el revisor confirme los datos; un índice único normal haría imposible subir dos borradores. La unicidad treaty real se exige recién cuando la norma tiene su número definido.
+
+**2026-10-04 — `palabras_clave` nullable.**
+EF Core genera columnas `NOT NULL` para arrays no-nullable; texto[] tolerable pero el modelo lo trató como opcional para no forzar datos al cargar migraciones históricas.
+
+**2026-10-04 — Migración de índices en su propio `Migration` con `Designer.cs`.**
+La migración manual (sin `dotnet ef add`) solo se descubre si lleva el archivo `.Designer.cs` con `[Migration("id")]`; el atributo en el propio cuerpo no fue suficiente con el SDK. Mantengo `Inicial` (tablas) y `IndiceTexto` (extensiones + tsvectors + índices GIN + unicidad) separados para poder regenerar el modelo sin tocar el SQL crudo.
+
+**2026-10-04 — `FileStorage:Root` por defecto es el cwd (`archivos/` bajo el directorio de ejecución).**
+El pipeline necesita resolver rutas absolutas para `pdfinfo`/`pdftotext`; cada proceso (API y worker) tenía su propio default divergente. En docker-compose ambas comparten `FileStorage__Root: /data/archivos` (volumen común); en desarrollo local se exporta `FILE_STORAGE_ROOT` igual para ambos.

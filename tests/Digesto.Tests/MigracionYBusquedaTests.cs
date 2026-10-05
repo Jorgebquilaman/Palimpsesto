@@ -49,13 +49,17 @@ public class MigracionYBusquedaTests : IClassFixture<MigracionYBusquedaFixture>
         var con = new Npgsql.NpgsqlConnection(_fixture.CadenaConexion);
         await con.OpenAsync();
 
+        var migraciones = (await con.QueryAsync<string>(
+            "SELECT migration_id FROM \"__EFMigrationsHistory\" ORDER BY migration_id")).ToList();
+        System.IO.File.WriteAllLines("/tmp/migs.log", migraciones);
+
         var extensiones = (await con.QueryAsync<string>(
             "SELECT extname FROM pg_extension WHERE extname IN ('unaccent', 'pg_trgm') ORDER BY 1")).ToList();
         Assert.Equal(new[] { "pg_trgm", "unaccent" }, extensiones);
 
-        var configs = (await con.QueryAsync<string>(
-            "SELECT cfgname FROM pg_ts_config WHERE cfgname IN ('es_unaccent', 'simple_unaccent') ORDER BY 1")).ToList();
-        Assert.Equal(new[] { "es_unaccent", "simple_unaccent" }, configs);
+        var funciones = (await con.QueryAsync<string>(
+            "SELECT proname FROM pg_proc WHERE proname IN ('f_unaccent', 'f_unir') ORDER BY 1")).ToList();
+        Assert.Equal(new[] { "f_unaccent", "f_unir" }, funciones);
 
         var columnasTsv = (await con.QueryAsync<string>(
             "SELECT column_name FROM information_schema.columns WHERE table_name = 'norma_fragmento' AND column_name IN ('tsv_es', 'tsv_lit') ORDER BY 1")).ToList();
@@ -83,13 +87,13 @@ public class MigracionYBusquedaTests : IClassFixture<MigracionYBusquedaFixture>
         await con.OpenAsync();
 
         var conAcentos = await con.ExecuteScalarAsync<bool>(
-            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_es @@ websearch_to_tsquery('es_unaccent', @q)",
+            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_es @@ websearch_to_tsquery('spanish', f_unaccent(@q))",
             new { q = "becas" });
         var sinAcentos = await con.ExecuteScalarAsync<bool>(
-            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_es @@ websearch_to_tsquery('es_unaccent', @q)",
+            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_es @@ websearch_to_tsquery('spanish', f_unaccent(@q))",
             new { q = "becas extension" });
         var fraseExacta = await con.ExecuteScalarAsync<bool>(
-            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_lit @@ phraseto_tsquery('simple_unaccent', @q)",
+            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_lit @@ phraseto_tsquery('simple', f_unaccent(@q))",
             new { q = "becas de extension" });
 
         Assert.True(conAcentos);

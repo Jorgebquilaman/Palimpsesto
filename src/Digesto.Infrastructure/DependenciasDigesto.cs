@@ -1,6 +1,8 @@
 using Digesto.Application.Archivos;
+using Digesto.Application.Busquedas;
 using Digesto.Application.Ingesta;
 using Digesto.Infrastructure.Archivos;
+using Digesto.Infrastructure.Busquedas;
 using Digesto.Infrastructure.Ingesta;
 using Digesto.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +22,7 @@ public static class DependenciasDigesto
                 .UseSnakeCaseNamingConvention());
 
         services.AddSingleton<IFileStorage>(new FileStorageLocal(
-            raizArchivos ?? Path.Combine(AppContext.BaseDirectory, "archivos")));
+            raizArchivos ?? Path.Combine(Directory.GetCurrentDirectory(), "archivos")));
 
         services.AddScoped<SeedDigesto>();
 
@@ -32,6 +34,8 @@ public static class DependenciasDigesto
         services.AddSingleton<ISanitizadorHtml, SanitizadorHtml>();
         services.AddScoped<Application.Ingesta.IIngestaService, IngestaService>();
         services.AddScoped<PipelineIngesta>();
+        services.AddScoped<Application.Busquedas.IBuscadorNormas, BuscadorNormas>();
+        services.AddScoped<Application.Busquedas.ISugerenciasNormas, SugerenciasNormas>();
 
         return services;
     }

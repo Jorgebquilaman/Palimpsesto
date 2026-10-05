@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Digesto.Infrastructure.Migrations
 {
     [DbContext(typeof(DigestoDbContext))]
-    [Migration("20261005003634_Inicial")]
+    [Migration("20261005012853_Inicial")]
     partial class Inicial
     {
         /// <inheritdoc />
@@ -267,7 +267,6 @@ namespace Digesto.Infrastructure.Migrations
                         .HasColumnName("organo_emisor_id");
 
                     b.Property<string[]>("PalabrasClave")
-                        .IsRequired()
                         .HasColumnType("text[]")
                         .HasColumnName("palabras_clave");
 

@@ -22,6 +22,9 @@ services:
     environment:
       ConnectionStrings__Digesto: Host=postgres;Port=5432;Database=${POSTGRES_DB:-digesto};Username=${POSTGRES_USER:-digesto};Password=${POSTGRES_PASSWORD:-digesto_dev}
       Jwt__Clave: ${JWT_CLAVE:-clave_de_desarrollo_local_minimo_32_caracteres_x}
+      FileStorage__Root: /data/archivos
+      Ingesta__TamanioMaximoMb: ${INGESTA_TAMANIO_MAX_MB:-50}
+      Ingesta__UmbralCaracteresPagina: ${INGESTA_UMBRAL_CARACTERES_PAGINA:-100}
       ASPNETCORE_URLS: http://+:8080
     ports:
       - "5008:8080"
@@ -38,6 +41,8 @@ services:
     environment:
       ConnectionStrings__Digesto: Host=postgres;Port=5432;Database=${POSTGRES_DB:-digesto};Username=${POSTGRES_USER:-digesto};Password=${POSTGRES_PASSWORD:-digesto_dev}
       FileStorage__Root: /data/archivos
+      Ingesta__TamanioMaximoMb: ${INGESTA_TAMANIO_MAX_MB:-50}
+      Ingesta__UmbralCaracteresPagina: ${INGESTA_UMBRAL_CARACTERES_PAGINA:-100}
     volumes:
       - archivos:/data/archivos
     depends_on:

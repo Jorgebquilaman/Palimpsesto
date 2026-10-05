@@ -67,7 +67,7 @@ public class Norma
     public string CodigoNormalizado { get; set; } = null!;
     public string Titulo { get; set; } = null!;
     public string? Resumen { get; set; }
-    public string[] PalabrasClave { get; set; } = [];
+    public string[]? PalabrasClave { get; set; }
     public string? Expediente { get; set; }
     public DateOnly FechaSancion { get; set; }
     public DateOnly? FechaPublicacion { get; set; }

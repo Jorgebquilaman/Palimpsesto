@@ -264,7 +264,6 @@ namespace Digesto.Infrastructure.Migrations
                         .HasColumnName("organo_emisor_id");
 
                     b.Property<string[]>("PalabrasClave")
-                        .IsRequired()
                         .HasColumnType("text[]")
                         .HasColumnName("palabras_clave");
 

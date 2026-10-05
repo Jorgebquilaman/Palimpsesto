@@ -12,11 +12,57 @@ namespace Digesto.Tests;
 
 public class IngestaEndToEndTests : IClassFixture<MigracionYBusquedaFixture>
 {
+    private static readonly SemaphoreSlim SemillaLock = new(1, 1);
+    private static ServiceProvider? _compartido;
     private readonly MigracionYBusquedaFixture _fixture;
 
     public IngestaEndToEndTests(MigracionYBusquedaFixture fixture)
     {
         _fixture = fixture;
+    }
+
+    private async Task<ServiceProvider> PrepararAsync()
+    {
+        if (_compartido is not null)
+        {
+            return _compartido;
+        }
+
+        await SemillaLock.WaitAsync();
+        try
+        {
+            if (_compartido is not null)
+            {
+                return _compartido;
+            }
+
+            var raizArchivos = Path.Combine(Path.GetTempPath(), "digesto-ingesta-" + Guid.NewGuid().ToString("N")[..8]);
+            var servicios = new ServiceCollection();
+            servicios.AddLogging();
+            servicios.AddDigestoInfrastructure(_fixture.CadenaConexion, raizArchivos);
+            servicios.Configure<IngestaOpciones>(o =>
+            {
+                o.UmbralCaracteresPagina = 100;
+                o.TamanioMaximoMb = 50;
+            });
+            _compartido = servicios.BuildServiceProvider();
+
+            var db = _compartido.GetRequiredService<DigestoDbContext>();
+            await db.Database.MigrateAsync();
+
+            if (!await db.TiposNorma.AnyAsync())
+            {
+                db.TiposNorma.Add(new Digesto.Domain.Entidades.TipoNorma { Codigo = "RES", Nombre = "Resolución" });
+                db.OrganosEmisores.Add(new Digesto.Domain.Entidades.OrganoEmisor { Codigo = "REC", Nombre = "Rectorado" });
+                await db.SaveChangesAsync();
+            }
+
+            return _compartido;
+        }
+        finally
+        {
+            SemillaLock.Release();
+        }
     }
 
     private ServiceProvider CrearServices(string raizArchivos)
@@ -35,18 +81,8 @@ public class IngestaEndToEndTests : IClassFixture<MigracionYBusquedaFixture>
     [Fact]
     public async Task SubirYProcesar_PdfNativo_CreaNormaFragmentosYEstados()
     {
-        var raiz = Path.Combine(Path.GetTempPath(), "digesto-test-" + Guid.NewGuid().ToString("N")[..8]);
-        await using var services = CrearServices(raiz);
-
+        var services = await PrepararAsync();
         var db = services.GetRequiredService<DigestoDbContext>();
-        await db.Database.MigrateAsync();
-
-        if (!await db.TiposNorma.AnyAsync())
-        {
-            db.TiposNorma.Add(new Digesto.Domain.Entidades.TipoNorma { Codigo = "RES", Nombre = "Resolución" });
-            db.OrganosEmisores.Add(new Digesto.Domain.Entidades.OrganoEmisor { Codigo = "REC", Nombre = "Rectorado" });
-            await db.SaveChangesAsync();
-        }
 
         var lineas = new[]
         {
@@ -102,34 +138,18 @@ public class IngestaEndToEndTests : IClassFixture<MigracionYBusquedaFixture>
         var con = new Npgsql.NpgsqlConnection(_fixture.CadenaConexion);
         await con.OpenAsync();
         var matchea = await con.ExecuteScalarAsync<bool>(
-            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_es @@ websearch_to_tsquery('es_unaccent', @q)",
+            "SELECT COUNT(*) > 0 FROM norma_fragmento WHERE tsv_es @@ websearch_to_tsquery('spanish', f_unaccent(@q))",
             new { q = "becas" });
         Assert.True(matchea);
-
-        Directory.Delete(raiz, recursive: true);
     }
 
     [Fact]
     public async Task Subir_NoPdf_Rechazado()
     {
-        var raiz = Path.Combine(Path.GetTempPath(), "digesto-test-" + Guid.NewGuid().ToString("N")[..8]);
-        await using var services = CrearServices(raiz);
-
-        var db = services.GetRequiredService<DigestoDbContext>();
-        await db.Database.MigrateAsync();
-
-        if (!await db.TiposNorma.AnyAsync())
-        {
-            db.TiposNorma.Add(new Digesto.Domain.Entidades.TipoNorma { Codigo = "RES", Nombre = "Resolución" });
-            db.OrganosEmisores.Add(new Digesto.Domain.Entidades.OrganoEmisor { Codigo = "REC", Nombre = "Rectorado" });
-            await db.SaveChangesAsync();
-        }
-
+        var services = await PrepararAsync();
         var ingesta = services.GetRequiredService<IIngestaService>();
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => ingesta.SubirPdfAsync(new MemoryStream([0x00, 0x01, 0x02, 0x03, 0x04]), "falso.pdf", "test"));
-
-        Directory.Delete(raiz, recursive: true);
     }
 }
