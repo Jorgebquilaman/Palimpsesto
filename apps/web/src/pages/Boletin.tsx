@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { VisorPdf } from '../components/VisorPdf'
 
 interface BoletinListado {
   id: number
@@ -9,6 +11,7 @@ interface BoletinListado {
 }
 
 interface BoletinDetalle extends BoletinListado {
+  tienePdf: boolean
   normas: {
     codigoNormalizado: string
     tipo: string
@@ -22,8 +25,10 @@ interface BoletinDetalle extends BoletinListado {
 }
 
 export default function Boletin() {
+  const { numero: numeroRuta } = useParams()
   const [parametros] = useSearchParams()
-  const numero = parametros.get('numero')
+  const numero = numeroRuta ?? parametros.get('numero')
+  const [pestana, setPestana] = useState<'normas' | 'pdf'>('normas')
 
   const { data: listado, isPending } = useQuery({
     queryKey: ['boletines'],
@@ -59,7 +64,7 @@ export default function Boletin() {
         <ul aria-label="Listado de boletines" className="space-y-1">
           {(listado ?? []).map(b => (
             <li key={b.id}>
-              <Link to={`/boletin?numero=${encodeURIComponent(b.numero)}`}
+              <Link to={`/boletines/${encodeURIComponent(b.numero)}`}
                 className={`flex items-baseline justify-between rounded-sm border px-3 py-2.5 transition-colors ${numero === b.numero
                   ? 'border-acento bg-barro-100/60'
                   : 'border-line bg-surface hover:border-verde-300 hover:bg-verde-50'}`}>
@@ -73,13 +78,29 @@ export default function Boletin() {
           {listado && listado.length === 0 && <li className="text-sm text-ink-faint">No hay boletines cargados.</li>}
         </ul>
 
-        <section aria-label="Normas del boletín">
+        <section aria-label="Detalle del boletín">
           {detalle ? (
             <div className="panel p-4">
-              <h2 className="text-lg font-bold">Boletín N° {detalle.numero}</h2>
-              <p className="text-sm text-ink-soft">
-                Publicado el {detalle.fechaPublicacion} · {detalle.normas.length} norma{detalle.normas.length === 1 ? '' : 's'} públicas de {detalle.totalNormas}
-              </p>
+              <div className="flex flex-wrap items-baseline gap-x-3">
+                <h2 className="text-lg font-bold">Boletín N° {detalle.numero}</h2>
+                <span className="text-sm text-ink-soft">
+                  Publicado el {detalle.fechaPublicacion} · {detalle.normas.length} norma{detalle.normas.length === 1 ? '' : 's'} públicas de {detalle.totalNormas}
+                </span>
+              </div>
+              <div role="tablist" aria-label="Secciones del boletín" className="mt-3 flex gap-4 border-b border-line">
+                <button role="tab" aria-selected={pestana === 'normas'} onClick={() => setPestana('normas')}
+                  className={`-mb-px border-b-2 px-1 pb-2 pt-1 text-sm font-medium ${pestana === 'normas' ? 'border-acento text-acento-texto' : 'border-transparent text-ink-faint hover:text-ink'}`}>
+                  Normas
+                </button>
+                {detalle.tienePdf && (
+                  <button role="tab" aria-selected={pestana === 'pdf'} onClick={() => setPestana('pdf')}
+                    className={`-mb-px border-b-2 px-1 pb-2 pt-1 text-sm font-medium ${pestana === 'pdf' ? 'border-acento text-acento-texto' : 'border-transparent text-ink-faint hover:text-ink'}`}>
+                    PDF original
+                  </button>
+                )}
+              </div>
+              {pestana === 'pdf' && <div className="mt-4"><VisorPdf pdfUrl={`/api/v1/boletines/${encodeURIComponent(numero ?? '')}/pdf`} /></div>}
+              {pestana === 'normas' && (
               <ul className="mt-3 space-y-2 text-sm">
                 {detalle.normas.map(n => (
                   <li key={n.codigoNormalizado} className="rounded-sm border border-line p-2">
@@ -90,6 +111,7 @@ export default function Boletin() {
                   </li>
                 ))}
               </ul>
+              )}
             </div>
           ) : (
             <div className="panel border-dashed p-8 text-center text-sm text-ink-faint">

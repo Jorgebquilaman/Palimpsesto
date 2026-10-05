@@ -101,6 +101,7 @@ public class BoletinesController : ControllerBase
             boletin.Numero,
             boletin.FechaPublicacion,
             boletin.Observaciones,
+            TienePdf = boletin.PdfStorageKey != null,
             Normas = normasPublicas,
             TotalNormas = totalNormas,
         });

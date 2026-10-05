@@ -46,6 +46,7 @@ export default function App() {
           <Route path="/" element={<Busqueda />} />
           <Route path="/normas/:codigo" element={<Norma />} />
           <Route path="/boletin" element={<Boletin />} />
+          <Route path="/boletines/:numero" element={<Boletin />} />
         </Route>
 
         <Route path="/styleguide" element={<Styleguide />} />

@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import DOMPurify from 'dompurify'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import {
   traerFragmentos,
   traerNorma,
   traerRelaciones,
 } from '../api/cliente'
 import { Badge } from '../components/ui'
+import { VisorPdf } from '../components/VisorPdf'
 
 const NOMBRE_TIPO: Record<string, string> = {
   encabezado: 'Encabezado',
@@ -191,7 +191,7 @@ export default function Norma() {
               </div>
             )}
 
-            {pestana === 'pdf' && norma && <VisorPdf codigo={norma.codigoNormalizado} />}
+            {pestana === 'pdf' && norma && <VisorPdf pdfUrl={`/api/v1/normas/${encodeURIComponent(norma.codigoNormalizado)}/pdf`} />}
 
             {pestana === 'relaciones' && (
               <section aria-label="Relaciones" className="panel p-6">
@@ -329,114 +329,3 @@ function TextoNorma({ fragmentos, terminos }: { fragmentos: { orden: number; pag
 function Normalizer() {
   void 0
 }
-
-function VisorPdf({ codigo }: { codigo: string }) {
-  const [pagina, setPagina] = useState(1)
-  const [totalPaginas, setTotalPaginas] = useState(1)
-  const [escala, setEscala] = useState(1.5)
-  const [cargando, setCargando] = useState(true)
-  const [errorCarga, setErrorCarga] = useState('')
-
-  const pdfUrl = useMemo(() => `/api/v1/normas/${encodeURIComponent(codigo)}/pdf`, [codigo])
-
-  return (
-    <section aria-label="Visor del PDF original" className="panel p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-        <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1}
-          className="btn-secundario px-2 py-1 disabled:opacity-40">←</button>
-        <span>Página {pagina} de {totalPaginas}</span>
-        <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas}
-          className="btn-secundario px-2 py-1 disabled:opacity-40">→</button>
-        <span className="mx-2">|</span>
-        <button onClick={() => setEscala(e => Math.max(0.5, e - 0.25))} className="btn-secundario px-2 py-1">−</button>
-        <span>{Math.round(escala * 100)}%</span>
-        <button onClick={() => setEscala(e => Math.min(3, e + 0.25))} className="btn-secundario px-2 py-1">+</button>
-        <a href={pdfUrl} download className="ml-auto btn-secundario px-2 py-1">Descargar PDF</a>
-      </div>
-      {errorCarga && <p role="alert" className="mb-2 text-sm text-derogada-texto">{errorCarga}</p>}
-      <LienzosPdf pdfUrl={pdfUrl} pagina={pagina} escala={escala}
-        onPaginas={(n) => {
-          setTotalPaginas(n)
-          if (pagina > n) setPagina(1)
-        }}
-        onEstado={(estado) => {
-          setCargando(estado === 'cargando')
-          if (estado === 'error') setErrorCarga('No se pudo mostrar el PDF; usá el botón Descargar PDF.')
-          else setErrorCarga('')
-        }} />
-      <div aria-live="polite">{cargando && <p className="mt-2 text-sm text-ink-faint">Cargando PDF…</p>}</div>
-      <p className="mt-3 text-xs text-ink-faint dark:text-ink-faint">
-        Si el texto se ve con errores, usá el PDF original: es el documento oficial.
-      </p>
-    </section>
-  )
-}
-
-function LienzosPdf({
-  pdfUrl,
-  pagina,
-  escala,
-  onPaginas,
-  onEstado,
-}: {
-  pdfUrl: string
-  pagina: number
-  escala: number
-  onPaginas: (total: number) => void
-  onEstado: (estado: 'cargando' | 'listo' | 'error') => void
-}) {
-  const lienzo = useRef<HTMLCanvasElement>(null)
-  const tareaRender = useRef<{ cancel: () => void } | null>(null)
-  const cbPaginas = useRef(onPaginas)
-  const cbEstado = useRef(onEstado)
-  cbPaginas.current = onPaginas
-  cbEstado.current = onEstado
-
-  useEffect(() => {
-    let vigente = true
-    cbEstado.current('cargando')
-    const cargando = (async () => {
-      try {
-        const pdfjs = await import('pdfjs-dist')
-        pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
-
-        const tarea = await pdfjs.getDocument({ url: pdfUrl }).promise
-        if (!vigente) return
-        cbPaginas.current(tarea.numPages)
-
-        const doc = await tarea.getPage(Math.min(pagina, tarea.numPages))
-        const viewport = doc.getViewport({ scale: escala })
-        const canvas = lienzo.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        tareaRender.current?.cancel()
-        canvas.width = viewport.width
-        canvas.height = viewport.height
-        const render = doc.render({ canvasContext: ctx, viewport })
-        tareaRender.current = render
-        await render.promise
-        if (vigente) cbEstado.current('listo')
-      } catch (err) {
-        if (vigente && !String((err as Error)?.message ?? '').includes('cancelled')) {
-          console.error('PDF', err)
-          cbEstado.current('error')
-        }
-      }
-    })()
-
-    return () => {
-      vigente = false
-      tareaRender.current?.cancel()
-      void cargando
-    }
-  }, [pdfUrl, pagina, escala])
-
-  return (
-    <div className="mx-auto min-h-[70vh] max-h-[85vh] overflow-auto bg-canvas p-2">
-      <canvas ref={lienzo} className="mx-auto block shadow-lg" />
-    </div>
-  )
-}
-
