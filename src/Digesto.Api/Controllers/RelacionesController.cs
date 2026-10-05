@@ -84,7 +84,17 @@ public class RelacionesController : ControllerBase
     [HttpPost("boletines")]
     public async Task<IActionResult> CrearBoletin([FromBody] CrearBoletinRequest request, CancellationToken ct)
     {
-        var existe = await _db.Boletines.AnyAsync(b => b.Numero == request.Numero, ct);
+        var numero = (request.Numero ?? "").Trim();
+        if (numero.Length == 0)
+        {
+            return Problem(statusCode: 400, detail: "El número del boletín es obligatorio");
+        }
+        if (numero.Contains('/'))
+        {
+            return Problem(statusCode: 400, detail: "El número del boletín no puede contener '/'");
+        }
+
+        var existe = await _db.Boletines.AnyAsync(b => b.Numero == numero, ct);
         if (existe)
         {
             return Problem(statusCode: 409, detail: "Ya existe un boletín con ese número");
@@ -92,9 +102,9 @@ public class RelacionesController : ControllerBase
 
         var boletin = new Boletin
         {
-            Numero = request.Numero,
+            Numero = numero,
             FechaPublicacion = request.FechaPublicacion,
-            Observaciones = request.Observaciones,
+            Observaciones = string.IsNullOrWhiteSpace(request.Observaciones) ? null : request.Observaciones.Trim(),
         };
         _db.Boletines.Add(boletin);
         await _db.SaveChangesAsync(ct);
