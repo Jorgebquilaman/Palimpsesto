@@ -304,6 +304,7 @@ export default function RevisionNorma() {
         <section aria-label="Metadatos sugeridos" className="space-y-3 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1">
 
           <form
+            id="formulario-norma"
             onSubmit={(e) => { e.preventDefault(); guardarTodo.mutate() }}
             className="panel p-4"
           >
@@ -373,9 +374,6 @@ export default function RevisionNorma() {
                   className="mt-1 campo" />
               </label>
             </div>
-            <button type="submit" disabled={guardarTodo.isPending} className="btn-acento mt-3">
-              <span aria-hidden="true">✦</span> {guardarTodo.isPending ? 'Guardando…' : 'Guardar cambios'}
-            </button>
           </form>
 
           <section aria-label="Relaciones" className="panel p-4">
@@ -426,27 +424,39 @@ export default function RevisionNorma() {
             </div>
           </section>
 
-          <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+          <div className="sticky bottom-0 z-10 mt-4 panel flex flex-wrap items-center gap-2 !bg-surface px-4 py-3 shadow-md">
             <button
-              onClick={() => setConfirmar({
-                titulo: '¿Poner los datos en blanco?',
-                detalle: 'Se borran TODOS los metadatos (título, resumen, palabras clave, expediente, fechas, número) y los fragmentos de texto. Solo queda el PDF. No se toca el PDF.',
-                accion: 'limpiar',
-              })}
-              className="btn-secundario"
+              type="submit"
+              form="formulario-norma"
+              disabled={guardarTodo.isPending}
+              className="btn-acento"
             >
-              Poner en blanco los datos
+              <span aria-hidden="true">✦</span> {guardarTodo.isPending ? 'Guardando…' : 'Guardar cambios'}
             </button>
-            <button
-              onClick={() => setConfirmar({
-                titulo: '¿Eliminar la norma?',
-                detalle: `Se elimina ${norma.codigoNormalizado} con sus fragmentos, relaciones, procesos y los PDF asociados. No se puede deshacer.`,
-                accion: 'eliminar',
-              })}
-              className="rounded-lg bg-[var(--derogada)] px-3 py-1.5 text-sm font-semibold text-[var(--crema-50)] hover:opacity-90"
-            >
-              Eliminar norma
-            </button>
+            <span className="ml-auto flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmar({
+                  titulo: '¿Poner los datos en blanco?',
+                  detalle: 'Se borran TODOS los metadatos (título, resumen, palabras clave, expediente, fechas, número) y los fragmentos de texto. Solo queda el PDF.',
+                  accion: 'limpiar',
+                })}
+                className="btn-secundario"
+              >
+                Poner en blanco
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmar({
+                  titulo: '¿Eliminar la norma?',
+                  detalle: `Se elimina ${norma.codigoNormalizado} con sus fragmentos, relaciones, procesos y los PDF asociados. No se puede deshacer.`,
+                  accion: 'eliminar',
+                })}
+                className="rounded-lg bg-[var(--derogada)] px-3 py-1.5 text-sm font-semibold text-[var(--crema-50)] hover:opacity-90"
+              >
+                Eliminar norma
+              </button>
+            </span>
           </div>
         </section>
       </div>
