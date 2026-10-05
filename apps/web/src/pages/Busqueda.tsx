@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDebounce } from '../components/useDebounce'
-import { Badge, Estado, EquemaEsqueletos, TituloSeccion } from '../components/ui'
+import { Badge, Estado, EquemaEsqueletos } from '../components/ui'
 import { OrnamentoLinea } from '../components/OrnamentoLinea'
 import {
   construirConsultaBusqueda,
@@ -296,7 +296,7 @@ export default function Busqueda() {
           </div>
         )}
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_260px]">
+        <div className="mt-8 mx-auto max-w-5xl">
           <section aria-label="Resultados">
             {isError && (
               <Estado tipo="error" titulo="Error al buscar" detalle={(error as Error)?.message ?? 'Reintentá en unos segundos.'} />
@@ -395,25 +395,6 @@ export default function Busqueda() {
               </>
             )}
           </section>
-
-          <aside aria-label="Facetas" className="space-y-5">
-            {resultados?.facetas.tipos && resultados.facetas.tipos.length > 0 && (
-              <Faceta titulo="Tipo" conteos={resultados.facetas.tipos}
-                seleccionar={(id) => actualizar({ tipoId: id === undefined ? undefined : String(id), organoId: undefined })}
-                nombreActivo={tipoId} />
-            )}
-            {resultados?.facetas.organos && resultados.facetas.organos.length > 0 && (
-              <Faceta titulo="Órgano emisor" conteos={resultados.facetas.organos}
-                seleccionar={(id) => actualizar({ organoId: id === undefined ? undefined : String(id), tipoId: undefined })}
-                nombreActivo={organoId} />
-            )}
-            {resultados?.facetas.vigencias && resultados.facetas.vigencias.length > 0 && (
-              <Faceta titulo="Vigencia" conteos={resultados.facetas.vigencias}
-                seleccionar={(id) => actualizar({ vigencia: id === undefined ? undefined : String(id) })}
-                nombreActivo={vigencia}
-                formatear={(nombre) => ETIQUETAS_VIGENCIA[nombre] ?? nombre} />
-            )}
-          </aside>
         </div>
       </main>
 
@@ -433,49 +414,6 @@ export default function Busqueda() {
         </div>
       </footer>
     </>
-  )
-}
-
-function Faceta({
-  titulo,
-  conteos,
-  seleccionar,
-  formatear = (s) => s,
-  nombreActivo,
-}: {
-  titulo: string
-  conteos: { id: number; nombre: string; cantidad: number }[]
-  seleccionar: (id: number | undefined) => void
-  formatear?: (nombre: string) => string
-  nombreActivo?: string
-}) {
-  return (
-    <div>
-      <TituloSeccion>{titulo}</TituloSeccion>
-      <ul className="mt-2 space-y-0.5 text-sm">
-        {conteos.map(c => {
-          const seleccionado = nombreActivo === String(c.id)
-          return (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => seleccionar(seleccionado ? undefined : c.id)}
-                className={`flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-verde-50 dark:hover:bg-crema-100/5 ${
-                  seleccionado ? 'bg-verde-100 font-semibold text-verde-900 dark:bg-crema-100/10 dark:text-crema-100' : 'text-ink'
-                }`}
-                aria-pressed={seleccionado}
-              >
-                <span className="flex items-center gap-1.5">
-                  <span className="rombo" aria-hidden="true">{seleccionado ? '✦' : ''}</span>
-                  {formatear(c.nombre)}
-                </span>
-                <span className="num-tabulares text-xs text-ink-faint">{c.cantidad}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
   )
 }
 
