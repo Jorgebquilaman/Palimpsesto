@@ -21,6 +21,7 @@ public class PipelineIngesta
     private readonly IEstructurador _estructurador;
     private readonly IExtractorMetadatos _extractorMetadatos;
     private readonly ISanitizadorHtml _sanitizador;
+    private readonly IOcrServicio _ocr;
     private readonly IngestaOpciones _opciones;
     private readonly ILogger<PipelineIngesta> _logger;
 
@@ -31,6 +32,7 @@ public class PipelineIngesta
         IEstructurador estructurador,
         IExtractorMetadatos extractorMetadatos,
         ISanitizadorHtml sanitizador,
+        IOcrServicio ocr,
         IOptions<IngestaOpciones> opciones,
         ILogger<PipelineIngesta> logger)
     {
@@ -40,6 +42,7 @@ public class PipelineIngesta
         _estructurador = estructurador;
         _extractorMetadatos = extractorMetadatos;
         _sanitizador = sanitizador;
+        _ocr = ocr;
         _opciones = opciones.Value;
         _logger = logger;
     }
@@ -69,8 +72,10 @@ public class PipelineIngesta
             proceso.Norma.EstadoPublicacion = EstadoPublicacion.Procesando;
             await _db.SaveChangesAsync(ct);
 
+            var rutaPdf = RutaAbsoluta(proceso.Archivo.StorageKey);
+
             await MarcarEtapaAsync(proceso.Id, "extraer_texto", ct);
-            var paginas = await _pdfTools.ExtraerTextoPorPaginaAsync(RutaAbsoluta(proceso.Archivo.StorageKey), ct)
+            var paginas = await _pdfTools.ExtraerTextoPorPaginaAsync(rutaPdf, ct)
                 ?? throw new InvalidOperationException("No se pudo extraer texto del PDF");
 
             var promedio = NormalizadorTexto.PromedioCaracteresAlfabeticos(
@@ -78,8 +83,21 @@ public class PipelineIngesta
 
             if (promedio < _opciones.UmbralCaracteresPagina)
             {
-                throw new InvalidOperationException(
-                    $"El PDF parece escaneado (promedio {promedio:F0} caracteres/página); requiere OCR");
+                await MarcarEtapaAsync(proceso.Id, "ocr", ct);
+                rutaPdf = await ProcesarOcrAsync(proceso, rutaPdf, ct);
+                paginas = await _pdfTools.ExtraerTextoPorPaginaAsync(rutaPdf, ct)
+                    ?? throw new InvalidOperationException("No se pudo extraer texto del PDF con OCR");
+                promedio = NormalizadorTexto.PromedioCaracteresAlfabeticos(
+                    paginas.Select(p => (p.Pagina, p.Texto)).ToList());
+
+                if (promedio < _opciones.UmbralCaracteresPagina)
+                {
+                    throw new InvalidOperationException(
+                        $"El PDF sigue sin texto legible tras OCR (promedio {promedio:F0} caracteres/página)");
+                }
+
+                proceso.Norma.TextoOrigen = TextoOrigen.Ocr;
+                proceso.Norma.CalidadOcr = Math.Min(1m, Math.Round((decimal)(promedio / _opciones.UmbralCaracteresPagina), 2));
             }
 
             await MarcarEtapaAsync(proceso.Id, "normalizar", ct);
@@ -128,6 +146,43 @@ public class PipelineIngesta
             await MarcarErrorAsync(proceso.Id, ex.Message, ct);
             return false;
         }
+    }
+
+    private async Task<string> ProcesarOcrAsync(Domain.Entidades.ProcesoIngesta proceso, string rutaOriginal, CancellationToken ct)
+    {
+        var etiqueta = Guid.NewGuid().ToString("N");
+        var directorio = Path.GetDirectoryName(rutaOriginal)!;
+        var rutaDerivado = Path.Combine(directorio, $"{etiqueta}.pdf");
+
+        var ok = await _ocr.EjecutarAsync(rutaOriginal, rutaDerivado,
+            TimeSpan.FromSeconds(Math.Max(60, _opciones.TimeoutProcesoSegundos * 10)), ct);
+        if (!ok || !File.Exists(rutaDerivado))
+        {
+            throw new InvalidOperationException("No se pudo generar el derivado con OCR");
+        }
+
+        await using var stream = File.OpenRead(rutaDerivado);
+        var guardado = await _fileStorage.GuardarAsync(stream, Path.GetFileName(rutaDerivado), ct);
+        await stream.DisposeAsync();
+
+        var sha256 = Convert.ToHexString(await System.Security.Cryptography.SHA256.HashDataAsync(
+            File.OpenRead(rutaDerivado), ct)).ToLowerInvariant();
+
+        _db.NormasArchivos.Add(new Domain.Entidades.NormaArchivo
+        {
+            Id = Guid.NewGuid(),
+            NormaId = proceso.NormaId,
+            Rol = RolArchivo.Ocr,
+            NombreOriginal = proceso.Archivo.NombreOriginal,
+            StorageKey = guardado.StorageKey,
+            Sha256 = sha256,
+            Mime = "application/pdf",
+            Bytes = guardado.Bytes,
+            Paginas = proceso.Archivo.Paginas,
+        });
+        await _db.SaveChangesAsync(ct);
+
+        return rutaDerivado;
     }
 
     private async Task ValidarAsync(Domain.Entidades.NormaArchivo archivo, CancellationToken ct)

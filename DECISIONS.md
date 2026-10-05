@@ -132,3 +132,14 @@ Solo `en_revision → publicada`; despublicar deja `en_revision` (nunca borra el
 
 **2026-10-04 — Los roles `editor` y `admin` comparten backoffice; `admin` administra usuarios/catálogos.**
 403 real para editor en `/admin/usuarios` y auditoría. El seed solo crea admin; el resto de usuarios se generan desde el backoffice.
+
+## Hito 6 — OCR, endurecimiento e importador
+
+**2026-10-04 — OCR como derivado con `ocrmypdf` via `IOcrServicio` inyectable.**
+El pipeline detecta PDF escaneado por promedio de caracteres alfabéticos/página y corre `ocrmypdf -l spa --skip-text --deskew --rotate-pages`; el resultado se guarda como `norma_archivo` con `rol = ocr` (el original firmado jamás se toca). `IOcrServicio` es una interfaz para poder testear el camino OCR sin instalar tesseract (test E2E sustituye el servicio).
+
+**2026-10-04 — Worker sandbox en docker-compose.**
+Red `backend` marcadamente `internal: true` (sin salida a Internet), usuario no-root en el Dockerfile, `pids_limit`, `mem_limit`/`cpus`, `tmpfs` para el trabajo de OCR, `no-new-privileges`. Timeout por proceso en `ProcesoRunner` (kill del árbol completo al agotarse).
+
+**2026-10-04 — Importador masivo un solo CSV + archivos en multipart.**
+`POST /admin/importar` con `csv` + `archivos[]`. Parso RFC4180 básico (comillas dobles escapadas). Columnas: `archivo,tipo,numero,anio,sufijo,titulo,fecha_sancion,fecha_publicacion,visibilidad,vigencia,resumen,expediente,palabras_clave` (`;` separa palabras clave). Cada fila: norma en borrador (a revisión como el resto; nada se publica sin confirmación humana) + `proceso_ingesta` pendiente para que el worker genere texto/fragmentos con los metadatos RESPECTADOS (no sobrescritos por las heurísticas cuando el CSV trae datos). `ANALYZE` corre al final para recomputar estadísticas del planificador.

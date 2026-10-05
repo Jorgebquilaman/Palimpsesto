@@ -32,6 +32,8 @@ public static class DependenciasDigesto
         services.AddSingleton<IEstructurador, EstructuradorRegex>();
         services.AddSingleton<IExtractorMetadatos, ExtractorMetadatosHeuristico>();
         services.AddSingleton<ISanitizadorHtml, SanitizadorHtml>();
+        services.AddSingleton<IOcrServicio, OcrmypdfServicio>();
+        services.AddSingleton<Application.Ingesta.IImportadorCsv, ImportadorCsv>();
         services.AddScoped<Application.Ingesta.IIngestaService, IngestaService>();
         services.AddScoped<PipelineIngesta>();
         services.AddScoped<Application.Busquedas.IBuscadorNormas, BuscadorNormas>();
