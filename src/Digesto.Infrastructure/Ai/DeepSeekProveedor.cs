@@ -70,6 +70,7 @@ public class DeepSeekProveedor : IProveedorAi
                 new { role = "user", content = bloques },
             },
             response_format = new { type = "json_object" },
+            thinking = new { type = "disabled" },
             temperature = 0.1,
             max_tokens = 4000,
         };
@@ -87,11 +88,13 @@ public class DeepSeekProveedor : IProveedorAi
         }
 
         using var datos = JsonDocument.Parse(cuerpo);
-        var contenido = datos.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
+        var mensaje = datos.RootElement.GetProperty("choices")[0].GetProperty("message");
+        var contenido = mensaje.TryGetProperty("content", out var c) ? c.GetString() : null;
+
+        if (string.IsNullOrWhiteSpace(contenido))
+        {
+            _logger.LogWarning("DeepSeek devolvió content vacío: {Cuerpo}", Truncar(cuerpo, 800));
+        }
 
         return contenido ?? "";
     }

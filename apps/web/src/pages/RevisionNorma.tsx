@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import type { ResultadoAi } from '../api/adminApi'
 import { completarConAi, ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, pedirAiEstado, tokenActual } from '../api/adminApi'
 import type { NormaAdminDetalle } from '../api/adminApi'
 
@@ -28,6 +29,7 @@ export default function RevisionNorma() {
   const [fragmentosEdit, setFragmentosEdit] = useState<Record<number, string>>({})
   const [mensaje, setMensaje] = useState('')
   const [confirmado, setConfirmado] = useState(false)
+  const [aiModal, setAiModal] = useState<{ fase: 'proceso' | 'exito' | 'error'; resultado?: ResultadoAi; error?: string } | null>(null)
 
   useEffect(() => {
     if (normaa && Object.keys(formulario).length === 0) {
@@ -125,16 +127,13 @@ export default function RevisionNorma() {
 
   const completarAi = useMutation({
     mutationFn: () => completarConAi(id),
+    onMutate: () => setAiModal({ fase: 'proceso' }),
     onSuccess: (r) => {
-      const campos = r.camposAplicados.length > 0 ? `Campos: ${r.camposAplicados.join(', ')}` : ''
-      const relaciones = r.relacionesCreadas.length > 0
-        ? ` · relaciones: ${r.relacionesCreadas.map(x => `${x.tipoRelacion} ${x.codigoDestino}`).join(', ')}`
-        : ''
-      setMensaje(`AI completó la información. ${campos}${relaciones}`)
+      setAiModal({ fase: 'exito', resultado: r })
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
       void cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] })
     },
-    onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
+    onError: (e) => setAiModal({ fase: 'error', error: (e as Error).message }),
   })
 
   const codigoNormalizado = normaa?.codigoNormalizado ?? ''
@@ -195,7 +194,7 @@ export default function RevisionNorma() {
         <div className="ml-auto flex gap-2">
           <button onClick={() => completarAi.mutate()} disabled={!estadoAi?.configurada || completarAi.isPending}
             className="btn-acento" title={!estadoAi?.configurada ? 'Configurá la clave en Inteligencia artificial' : 'Completar metadatos, resumen y relaciones con DeepSeek'}>
-            <span aria-hidden="true">✦</span> {completarAi.isPending ? 'Consultando a la AI…' : 'Completar con AI'}
+            <span aria-hidden="true">✦</span> Completar con AI
           </button>
           <button onClick={() => reprocesar.mutate()} className="btn-secundario">
             Reprocesar
@@ -347,6 +346,57 @@ export default function RevisionNorma() {
           </section>
         </section>
       </div>
+      {aiModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-ai"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
+          <div className="panel max-w-md p-6 shadow-xl">
+            {aiModal.fase === 'proceso' && (
+              <>
+                <h2 id="titulo-ai" className="mb-3 flex items-center gap-2 text-lg font-bold">
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-acento border-t-transparent" aria-hidden="true" />
+                  Completando con AI…
+                </h2>
+                <ol className="space-y-2 text-sm text-ink-soft">
+                  <li>1. Tomamos el PDF original firmado de la norma</li>
+                  <li>2. Se renderizan las páginas como imágenes</li>
+                  <li>3. DeepSeek lee el documento directamente (sin OCR)</li>
+                  <li>4. Se aplican los datos deducidos y las relaciones</li>
+                </ol>
+                <p className="mt-3 text-xs text-ink-faint">Puede tardar hasta un minuto. No cierres esta ventana.</p>
+              </>
+            )}
+            {aiModal.fase === 'exito' && (
+              <>
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-verde-100 text-2xl text-verde-700" aria-hidden="true">✓</div>
+                <h2 id="titulo-ai" className="mb-2 text-lg font-bold">La AI terminó bien</h2>
+                {aiModal.resultado?.camposAplicados?.length ? (
+                  <p className="text-sm text-ink-soft"><strong>Campos completados:</strong> {aiModal.resultado.camposAplicados.join(', ')}</p>
+                ) : <p className="text-sm text-ink-soft">No encontró campos para completar.</p>}
+                {aiModal.resultado?.relacionesCreadas?.length ? (
+                  <p className="mt-2 text-sm text-ink-soft"><strong>Relaciones creadas:</strong> {aiModal.resultado.relacionesCreadas.map(x => `${x.tipoRelacion} → ${x.codigoDestino}`).join(', ')}</p>
+                ) : null}
+                {aiModal.resultado?.advertencias?.length ? (
+                  <p className="mt-2 text-xs text-derogada-texto">{aiModal.resultado.advertencias.join(' · ')}</p>
+                ) : null}
+                <div className="mt-4 text-center"><button onClick={() => setAiModal(null)} className="btn-acento">Aceptar</button></div>
+              </>
+            )}
+            {aiModal.fase === 'error' && (
+              <>
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--derogada)]/15 text-2xl text-derogada-texto" aria-hidden="true">✗</div>
+                <h2 id="titulo-ai" className="mb-2 text-lg font-bold">La AI no pudo completar</h2>
+                <p className="text-sm text-derogada-texto">{aiModal.error}</p>
+                <div className="mt-4 text-center"><button onClick={() => setAiModal(null)} className="btn-secundario">Cerrar</button></div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {confirmado && (
         <div
           role="dialog"
