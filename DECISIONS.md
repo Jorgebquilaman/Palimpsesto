@@ -347,3 +347,7 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 **Problema**: al aplicar la identidad deducida (tipo+órgano+número+año), la AI puede chocar con `ix_norma_unicidad` (otra norma ya tiene esa identidad: típico cuando el documento es un duplicado de otro ya cargado) → DbUpdateException → el stream moría sin línea final → "La AI terminó sin responder".
 
 **Fix**: `AplicarDatosAsync` verifica ANTES si otra norma ya tiene esa identidad: si choca, no toca identidad y agrega advertencia al resultado ("ya la tiene RES-REC-2026-0019; ¿duplicado?"). El resto de los campos se aplica igual. Además el endpoint de stream envuelve el servicio en try/catch y SIEMPRE emite la línea final `{estado:"error"}`.
+
+## Boletines paginados y con búsqueda
+
+`GET /boletines` (público) ahora admite `page`, `q` (ILIKE sobre numero y observaciones) y `pageSize` (default 10, cap 100). La página pública `/boletin` usa paginación de 10 con buscador arriba del listado; el backoffice pide pageSize 50.

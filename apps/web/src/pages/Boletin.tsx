@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { VisorPdf } from '../components/VisorPdf'
+import { useDebounce } from '../components/useDebounce'
 
 interface BoletinListado {
   id: number
@@ -30,15 +31,25 @@ export default function Boletin() {
   const numero = numeroRuta ?? parametros.get('numero')
   const [pestana, setPestana] = useState<'normas' | 'pdf'>('normas')
 
+  const [busqueda, setBusqueda] = useState('')
+  const [pagina, setPagina] = useState(1)
+  const porPagina = 10
+  const textoDebounced = useDebounce(busqueda, 350)
+
+  useEffect(() => { setPagina(1) }, [textoDebounced])
+
   const { data: listado, isPending } = useQuery({
-    queryKey: ['boletines'],
+    queryKey: ['boletines', textoDebounced, pagina],
     queryFn: async () => {
-      const r = await fetch('/api/v1/boletines')
+      const sp = new URLSearchParams({ page: String(pagina), pageSize: String(porPagina) })
+      if (textoDebounced.trim().length > 0) sp.set('q', textoDebounced.trim())
+      const r = await fetch(`/api/v1/boletines?${sp}`)
       if (!r.ok) throw new Error('Error al cargar boletines')
-      const d = await r.json()
-      return d.items as BoletinListado[]
+      return (await r.json()) as { total: number; items: BoletinListado[] }
     },
+    placeholderData: (anterior) => anterior,
   })
+  const totalPaginas = Math.max(1, Math.ceil((listado?.total ?? 0) / porPagina))
 
   const { data: detalle } = useQuery({
     queryKey: ['boletin', numero],
@@ -61,8 +72,18 @@ export default function Boletin() {
       </p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-[1fr_2fr]">
+        <div className="mb-3">
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por número u observaciones"
+            aria-label="Buscar boletines"
+            className="campo w-full"
+          />
+        </div>
         <ul aria-label="Listado de boletines" className="space-y-1">
-          {(listado ?? []).map(b => (
+          {(listado?.items ?? []).map((b: BoletinListado) => (
             <li key={b.id}>
               <Link to={`/boletines/${encodeURIComponent(b.numero)}`}
                 className={`flex items-baseline justify-between rounded-sm border px-3 py-2.5 transition-colors ${numero === b.numero
@@ -75,8 +96,19 @@ export default function Boletin() {
             </li>
           ))}
           {isPending && <li className="text-sm text-ink-faint">Cargando…</li>}
-          {listado && listado.length === 0 && <li className="text-sm text-ink-faint">No hay boletines cargados.</li>}
+          {listado && listado.items.length === 0 && (
+            <li className="text-sm text-ink-faint">
+              {textoDebounced ? `Sin boletines que coincidan con “${textoDebounced}”.` : 'No hay boletines cargados.'}
+            </li>
+          )}
         </ul>
+        <nav aria-label="Paginación de boletines" className="mt-3 flex items-center justify-between text-xs text-ink-faint">
+          <button type="button" onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1}
+            className="btn-secundario px-2 py-1 disabled:opacity-40">← Anterior</button>
+          <span>Página {pagina} de {totalPaginas}</span>
+          <button type="button" onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas}
+            className="btn-secundario px-2 py-1 disabled:opacity-40">Siguiente →</button>
+        </nav>
 
         <section aria-label="Detalle del boletín">
           {detalle ? (

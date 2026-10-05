@@ -20,15 +20,24 @@ public class BoletinesController : ControllerBase
     }
 
     [HttpGet("boletines")]
-    public async Task<IActionResult> Listado([FromQuery] int page = 1, CancellationToken ct = default)
+    public async Task<IActionResult> Listado([FromQuery] int page = 1, [FromQuery] string? q = null, [FromQuery] int pageSize = 10, CancellationToken ct = default)
     {
         var pagina = Math.Max(1, page);
-        var total = await _db.Boletines.CountAsync(ct);
-        var items = await _db.Boletines
-            .AsNoTracking()
+        var tamano = Math.Clamp(pageSize, 1, 100);
+
+        var query = _db.Boletines.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var patron = $"%{q.Trim()}%";
+            query = query.Where(b => EF.Functions.ILike(b.Numero, patron)
+                || (b.Observaciones != null && EF.Functions.ILike(b.Observaciones, patron)));
+        }
+
+        var total = await query.CountAsync(ct);
+        var items = await query
             .OrderByDescending(b => b.FechaPublicacion)
-            .Skip((pagina - 1) * 50)
-            .Take(50)
+            .Skip((pagina - 1) * tamano)
+            .Take(tamano)
             .Select(b => new
             {
                 b.Id,
@@ -40,7 +49,7 @@ public class BoletinesController : ControllerBase
             })
             .ToListAsync(ct);
 
-        return Ok(new { total, items });
+        return Ok(new { total, pagina, tamano, items });
     }
 
     [HttpGet("boletines/{numero}/pdf")]
