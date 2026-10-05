@@ -107,26 +107,44 @@ export default function Busqueda() {
 
   return (
     <>
-      <section className="hero-verde no-print relative px-4 pb-14 pt-16 sm:pb-20 sm:pt-20">
-        <div className="relative mx-auto max-w-3xl text-center">
-          <OrnamentoLinea className="mx-auto mb-4 h-14 w-48 opacity-80" />
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-crema-100/60">
-            Instituto Universitario Patagónico de las Artes
-          </p>
-          <h1 className="font-display text-display font-semibold leading-[1.05] tracking-tight">
-            Digesto Normativo
-          </h1>
-          <p className="mx-auto mt-3 max-w-md font-lectura text-sm text-crema-100/75 sm:text-[15px]">
-            El PDF firmado es el documento oficial ·{' '}
-            <Link to="/boletin" className="underline underline-offset-4 decoration-acento/60 hover:text-crema-100">
-              Boletín Oficial
-            </Link>
-          </p>
+      <section className="hero-verde no-print relative px-4 pb-24 pt-14 sm:pb-28 sm:pt-16">
+        <div className="relative mx-auto grid max-w-5xl gap-10 sm:grid-cols-[1.2fr_1fr] sm:items-center">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-crema-100/60">
+              Instituto Universitario Patagónico de las Artes
+            </p>
+            <h1 className="font-display text-display font-semibold leading-[1.05] tracking-tight">
+              Digesto<br />Normativo
+            </h1>
+            <p className="mt-4 max-w-md font-lectura text-sm leading-relaxed text-crema-100/75 sm:text-[15px]">
+              Ordenanzas, resoluciones y declaraciones de la institución, con su texto completo
+              y el PDF firmado como documento oficial.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link to="/boletin" className="btn-acento">
+                Ver boletín oficial
+              </Link>
+              <a href="#formulario-busqueda" className="rounded-full border border-crema-100/30 px-5 py-2.5 text-sm font-medium text-crema-100 transition-colors hover:bg-crema-100/10">
+                Buscar una norma
+              </a>
+            </div>
+          </div>
+          <div className="relative hidden sm:block">
+            <OrnamentoLinea className="h-20 w-full opacity-90" />
+            <div className="mt-4 space-y-3 rounded-md bg-crema-100/10 p-5 backdrop-blur-sm">
+              {[['✦', 'Texto completo por artículo'], ['⎙', 'PDF original firmado, siempre intacto'], ['◉', 'Estados de vigencia siempre visibles']].map(([icono, texto]) => (
+                <p key={texto} className="flex items-center gap-3 text-sm text-crema-100/85">
+                  <span aria-hidden="true" className="text-acento">{icono}</span>
+                  {texto}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       <main className="mx-auto -mt-8 max-w-6xl px-4 pb-20 sm:-mt-12">
-        <section aria-label="Formulario de búsqueda" className="panel panel-elevada rounded-lg p-4 sm:p-5">
+        <section id="formulario-busqueda" aria-label="Formulario de búsqueda" className="panel panel-elevada rounded-lg p-4 sm:p-5">
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -275,6 +293,20 @@ export default function Busqueda() {
               Limpiar todo
             </button>
           </div>
+        )}
+
+        {!q && !numero && !anio && !tipoId && !organoId && !desde && !hasta && !vigencia && (
+          <section aria-label="Accesos rápidos" className="banda-salvia -mx-4 mt-8 rounded-lg px-6 py-10 sm:-mx-5 sm:px-10">
+            <h2 className="text-center font-display text-titulo font-semibold tracking-tight">
+              Accesos rápidos
+            </h2>
+            <div className="mx-auto mt-6 grid max-w-4xl gap-6 text-center sm:grid-cols-4">
+              <AccesoRapido icono="◉" titulo="Vigentes" detalle="Las normas de cumplimiento obligatorio hoy" onClick={() => { setFiltrosAbiertos(true); actualizar({ vigencia: 'vigente' }) }} />
+              <AccesoRapido icono="⎙" titulo="Últimas sanciones" detalle="Ordenadas por fecha, las más nuevas primero" onClick={() => actualizar({ orden: 'fecha_desc' })} />
+              <AccesoRapido icono="☰" titulo="Por tipo de norma" detalle="Resoluciones, ordenanzas y más" onClick={() => { setFiltrosAbiertos(true); actualizar({ orden: 'fecha_desc' }) }} />
+              <AccesoRapido icono="⌁" titulo="Boletines oficiales" detalle="Cada publicación con sus normas" ruta="/boletin" />
+            </div>
+          </section>
         )}
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_260px]">
@@ -459,5 +491,21 @@ function Paginador({ page, total, pageSize, onCambiar }: { page: number; total: 
         Siguiente →
       </button>
     </nav>
+  )
+}
+
+function AccesoRapido({ icono, titulo, detalle, onClick, ruta }: { icono: string; titulo: string; detalle: string; onClick?: () => void; ruta?: string }) {
+  const contenido = (
+    <>
+      <span aria-hidden="true" className="text-2xl text-crema-100/90">{icono}</span>
+      <span className="mt-1 font-display text-base font-semibold">{titulo}</span>
+      <span className="text-xs text-crema-100/70">{detalle}</span>
+    </>
+  )
+  const clases = 'flex flex-col items-center gap-1 rounded-md px-3 py-4 transition-colors hover:bg-crema-100/10 focus-visible:bg-crema-100/10'
+  return ruta ? (
+    <Link to={ruta} className={clases}>{contenido}</Link>
+  ) : (
+    <button type="button" onClick={onClick} className={clases}>{contenido}</button>
   )
 }

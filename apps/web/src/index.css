@@ -40,6 +40,7 @@
   --on-primary: var(--crema-50);
   --accent: var(--barro-500);
   --accent-text: var(--barro-700);
+  --on-acento: var(--verde-950);
   --border: rgb(27 77 62 / 0.12);
   --ring: var(--barro-300);
 
@@ -73,6 +74,7 @@
   --on-primary: var(--verde-950);
   --accent: var(--barro-300);
   --accent-text: var(--barro-300);
+  --on-acento: var(--verde-950);
   --border: rgb(238 221 204 / 0.12);
   --ring: var(--barro-300);
   --vigente-texto: #7fc9a4;
@@ -258,6 +260,29 @@
     cursor: not-allowed;
   }
 
+  .btn-acento {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--accent);
+    color: var(--on-acento);
+    border-radius: 999px;
+    padding: 0.6rem 1.35rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    box-shadow: var(--shadow-sm);
+    transition: background 170ms ease-out, transform 170ms ease-out, box-shadow 170ms ease-out;
+  }
+  .btn-acento:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .btn-acento:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .btn-sutil {
     display: inline-flex;
     align-items: center;
@@ -304,6 +329,14 @@
   }
   .dark .campo:focus {
     box-shadow: 0 0 0 3px rgb(240 175 143 / 0.35), var(--shadow-sm);
+  }
+
+  .banda-salvia {
+    background: var(--verde-700);
+    color: var(--crema-50);
+  }
+  .dark .banda-salvia {
+    background: rgb(67 100 90 / 0.25);
   }
 
   .rombo {

@@ -121,6 +121,7 @@ export default function Styleguide() {
           <button className="btn-primario" disabled>Buscar</button>
           <button className="btn-secundario">Iniciar sesión</button>
           <button className="btn-sutil">Copiar cita</button>
+          <button className="btn-acento">Acción destacada</button>
         </div>
       </Seccion>
 
@@ -209,6 +210,16 @@ export default function Styleguide() {
               </tr>
             </tbody>
           </table>
+        </div>
+      </Seccion>
+
+      <Seccion titulo="Banda salvia (secciones alternadas)">
+        <div className="banda-salvia rounded-md px-6 py-10 text-center">
+          <h3 className="font-display text-titulo font-semibold">Sección sobre banda salvia</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm opacity-80">
+            Las bandas de color (crema → salvia → verde oscuro) alternan el ritmo de la página,
+            como en el sitio de referencia.
+          </p>
         </div>
       </Seccion>
 

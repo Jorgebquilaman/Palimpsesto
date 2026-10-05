@@ -46,7 +46,7 @@ export function Cabecera() {
             </span>
           </span>
         </Link>
-        <nav aria-label="Navegación principal" className="ml-3 hidden gap-1 text-sm sm:flex">
+        <nav aria-label="Navegación principal" className="ml-6 hidden gap-1 text-sm sm:flex">
           <EnlacePanel ruta="/" activa={esActiva('/')}>
             Digesto
           </EnlacePanel>
@@ -63,7 +63,7 @@ export function Cabecera() {
           >
             <span aria-hidden="true">{oscuro ? '☀' : '☾'}</span>
           </button>
-          <Link to="/admin" className="btn-secundario hidden sm:inline-flex">
+          <Link to="/admin" className="btn-acento hidden sm:inline-flex">
             Iniciar sesión
           </Link>
         </div>

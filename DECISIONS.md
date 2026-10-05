@@ -233,3 +233,14 @@ Todo con radios y colores de tokens; el contraste WCAG AA sigue pasando (15 pare
 **Dos fallas encadenadas**: el front pedía `/admin/normas/{id}/pdf-admin` (endpoint inexistente; el real es `/{id}/pdf`) y, aun con la URL correcta, un `<embed src>` no manda el header `Authorization` → 401. Solución: fetch con el JWT → `blob` → `URL.createObjectURL` para el embed, con `revokeObjectURL` al desmontar (fuga de memoria evitada) y `staleTime: Infinity` (el PDF es inmutable).
 
 **Nota de operación**: quedó comprobado que un `dotnet run` local escuchando en 5008 enmascara al contenedor Docker (produce 500 con rutas del filesystem local y confunde el diagnóstico). Al probar el stack, verificar `lsof -i :5008` o matar los `dotnet run` locales.
+
+## Estética de la referencia (Root + Bloom / mitzi james)
+
+**Patrones tomados (solo estilo, sin copiar logo ni ilustración):**
+- Botón CTA en **pill terracota** (`.btn-acento`, `bg-acento` con texto `--on-acento` verde-950 — contraste 5.3:1, AA ok incluso en oscuro donde `--accent` pasa a barro-300). La referencia usa texto crema sobre durazno que no cumple AA; el nuestro mantiene el look con texto oscuro.
+- **Hero dos columnas** (título serif izquierda + arte/valor derecha) con CTA pill; la tarjeta de búsqueda sigue flotando debajo.
+- **Bandas de color alternadas** (crema → salvia `.banda-salvia` → verde oscuro) para dar ritmo: la banda de accesos rápidos usa salvia verde-700 con texto crema (6:1).
+- **Headings centrados serif** para secciones (Boletín, Accesos rápidos) y headings de backoffice con rombo.
+- Icons line-art simples (unicode ligeros) con acento terracota, nunca solo color.
+
+**Par de contraste nuevo en el test**: `--on-acento/--accent` (16 pares en total).

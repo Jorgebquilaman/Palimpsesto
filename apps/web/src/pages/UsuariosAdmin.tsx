@@ -36,7 +36,7 @@ export default function UsuariosAdmin() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">Usuarios y roles</h1>
+      <h1 className="font-display text-titulo font-semibold tracking-tight"><span className="rombo" aria-hidden="true">✦</span>Usuarios y roles</h1>
       <div aria-live="polite">{mensaje && <p className="text-sm text-vigente-texto">{mensaje}</p>}</div>
 
       <section className="panel p-4">

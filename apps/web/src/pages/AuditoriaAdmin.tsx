@@ -11,7 +11,7 @@ export default function AuditoriaAdmin() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">Auditoría</h1>
+      <h1 className="font-display text-titulo font-semibold tracking-tight"><span className="rombo" aria-hidden="true">✦</span>Auditoría</h1>
       {isError && <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>}
       {isPending && <p aria-live="polite">Cargando…</p>}
       {data && (

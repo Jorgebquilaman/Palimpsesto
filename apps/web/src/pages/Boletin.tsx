@@ -48,7 +48,12 @@ export default function Boletin() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       <Link to="/" className="text-sm text-ink-faint underline">← Volver</Link>
-      <h1 className="mt-3 text-2xl font-bold">Boletín Oficial</h1>
+      <h1 className="mt-3 text-center font-display text-titulo font-semibold tracking-tight">
+        Boletín Oficial
+      </h1>
+      <p className="mt-1 text-center text-sm text-ink-faint">
+        Cada publicación con las normas que la integran
+      </p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-[1fr_2fr]">
         <ul aria-label="Listado de boletines" className="space-y-1">

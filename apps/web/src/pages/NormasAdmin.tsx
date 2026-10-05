@@ -25,7 +25,7 @@ export default function NormasAdmin() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Normas</h1>
+        <h1 className="font-display text-titulo font-semibold tracking-tight"><span className="rombo" aria-hidden="true">✦</span>Normas</h1>
       </div>
 
       <DropzoneNormas />

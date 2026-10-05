@@ -46,7 +46,7 @@ export default function CatalogosAdmin() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">Catálogos</h1>
+      <h1 className="font-display text-titulo font-semibold tracking-tight"><span className="rombo" aria-hidden="true">✦</span>Catálogos</h1>
       <div aria-live="polite">{mensaje && <p className="text-sm text-vigente-texto">{mensaje}</p>}</div>
 
       {isError && <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>}

@@ -67,6 +67,7 @@ const paresDefinidos = [
   ['texto-atenuado/canvas', 'text-muted', 'bg', 4.5, 'ambos'],
   ['texto-atenuado/surface', 'text-muted', 'surface', 4.5, 'ambos'],
   ['sobre-primario/primario (botones)', 'on-primary', 'primary', 4.5, 'ambos'],
+  ['sobre-acento/acento (botón pill)', 'on-acento', 'accent', 4.5, 'ambos'],
   ['acento-texto/canvas', 'accent-text', 'bg', 4.5, 'ambos'],
   ['acento-texto/surface', 'accent-text', 'surface', 4.5, 'ambos'],
   ['vigente-texto/verde-100 (badge claro)', 'vigente-texto', 'verde-100', 4.5, 'claro'],
