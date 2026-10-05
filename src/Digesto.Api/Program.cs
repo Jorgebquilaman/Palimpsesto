@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Digesto.Application.Archivos;
 using Digesto.Infrastructure;
 using Digesto.Infrastructure.Archivos;
@@ -70,7 +71,8 @@ try
         });
     builder.Services.AddAuthorization();
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers().AddJsonOptions(o =>
+    o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
     builder.Services.AddHealthChecks()
