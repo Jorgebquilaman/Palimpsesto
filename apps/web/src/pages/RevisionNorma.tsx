@@ -132,6 +132,8 @@ export default function RevisionNorma() {
     onMutate: () => setAiModal({ fase: 'proceso' }),
     onSuccess: (r) => {
       setAiModal({ fase: 'exito', resultado: r })
+      setConfigurar({})
+      setFragmentosEdit({})
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
       void cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] })
     },
@@ -146,6 +148,8 @@ export default function RevisionNorma() {
     onSuccess: () => {
       if (confirmar?.accion === 'limpiar') {
         setConfirmar(null)
+        setConfigurar({})
+        setFragmentosEdit({})
         setMensaje('Datos en blanco')
         void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
       } else {
@@ -372,7 +376,7 @@ export default function RevisionNorma() {
             <button
               onClick={() => setConfirmar({
                 titulo: '¿Poner los datos en blanco?',
-                detalle: 'Se borran título, resumen, palabras clave, expediente y fecha de sanción de esta norma. Los fragmentos y el PDF no se tocan.',
+                detalle: 'Se borran TODOS los metadatos (título, resumen, palabras clave, expediente, fechas, número) y los fragmentos de texto. Solo queda el PDF. No se toca el PDF.',
                 accion: 'limpiar',
               })}
               className="btn-secundario"

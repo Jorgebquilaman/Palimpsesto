@@ -295,11 +295,20 @@ public class NormasAdminDetalleController : ControllerBase
             return Problem(statusCode: 404, detail: "Norma no encontrada");
         }
 
+        norma.Numero = 0;
+        norma.Sufijo = null;
         norma.Titulo = string.Empty;
         norma.Resumen = null;
         norma.PalabrasClave = null;
         norma.Expediente = null;
         norma.FechaSancion = DateOnly.MinValue;
+        norma.Vigencia = Vigencia.Vigente;
+
+        var fragmentos = await _db.NormasFragmentos
+            .Where(f => f.NormaId == id)
+            .ToListAsync(ct);
+        _db.NormasFragmentos.RemoveRange(fragmentos);
+
         norma.ActualizadoEn = DateTime.UtcNow;
         norma.ActualizadoPor = User.Identity?.Name ?? "desconocido";
 
