@@ -98,10 +98,10 @@ export function LayoutAdmin() {
   return (
     <div className="sin-textura min-h-screen bg-crema-50">
       <aside className="no-print fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-y-auto bg-verde-950 text-crema-100">
-        <Link to="/" className="mb-2 mt-4 flex items-center gap-2 px-4 font-display text-lg font-semibold">
-          <img src="/logo-mark-mono.svg" alt="" width={32} height={32}
-            className="h-8 w-8 text-crema-100" aria-hidden="true" />
-          Backoffice
+        <Link to="/" className="mb-2 mt-4 flex flex-col items-start gap-1 px-4">
+          <img src="/logo-iupa.svg" alt="IUPA" width={160} height={44}
+            className="h-9 w-auto" aria-hidden="true" />
+          <span className="text-xs text-crema-100/50">Backoffice</span>
         </Link>
         <p className="mb-4 px-4 text-xs text-crema-100/50">{sesion.nombre} · {sesion.rol}</p>
 

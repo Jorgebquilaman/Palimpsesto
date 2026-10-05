@@ -112,9 +112,8 @@ export default function Busqueda() {
       <section className="hero-verde no-print relative px-4 pb-24 pt-8 sm:pb-28 sm:pt-12">
         <div className="relative mx-auto grid max-w-5xl gap-10 sm:grid-cols-[1.2fr_1fr] sm:items-center">
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-crema-100/60">
-              Instituto Universitario Patagónico de las Artes
-            </p>
+            <img src="/logo-iupa.svg" alt="Instituto Universitario Patagónico de las Artes"
+              width={194} height={54} className="mb-4 h-11 w-auto" />
             <h1 className="font-display text-display font-semibold leading-[1.05] tracking-tight">
               Digesto<br />Normativo
             </h1>
