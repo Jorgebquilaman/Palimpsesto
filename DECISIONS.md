@@ -285,3 +285,21 @@ Los grupos colapsan con chevron rotado y se auto-abren si la ruta activa pertene
 **Test del parser**: `ParsearRespuesta` tolera cercas markdown (`\`\`\`json`), texto alrededor del JSON y claves ausentes (todo nulo). `InternalsVisibleTo` habilitado para Digesto.Tests.
 
 El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la entidad pero nunca generé la migración. Plantilla: **cada entidad nueva → migración inmediata**, el backend con modelo sin migración arranca pero explota al tocar la tabla faltante (PostgresException 42P01).
+
+## OCR en PDFs vectorizados
+
+**Síntoma**: norma con "0 caracteres/página" tras OCR aunque el PDF tiene contenido (texto vectorizado, sin fuentes ni imágenes: generado por herramientas de diseño o impresión PostScript).
+
+**Diagnóstico**: `pdfimages -list` devolvía 0 imágenes y `pdftotext` texto vacío, pero `pdftoppm -r 300` + `tesseract -l spa` leía perfectamente. ocrmypdf en modo default (con `--skip-text`) solo OCR-éa imágenes embebidas; sin imágenes, no había nada que procesar y devolvía el PDF sin capa de texto.
+
+**Fix**: `--force-ocr` en `OcrmypdfServicio` — rasteriza cada página vía Ghostscript antes de tesseract. Es seguro porque el pipeline solo invoca OCR cuando el texto nativo ya falló el umbral.
+
+## Permisos del volumen de archivos
+
+**Síntoma**: `OutputFileAccessError: Output file location (...) is not a writable file` de ocrmypdf; worker (uid 1001) no podía crear derivados.
+
+**Causa**: restaurar archivos con `docker cp` deja el directorio como root:root 755. El worker corre como uid 1001 y la API como root.
+
+**Fix**: `docker exec -u root palimpsesto-worker-1 chmod -R a+rwX /data/archivos` (a+rwX: dirs 777, archivos 666). Si vuelve a pasar: revisar `ls -la /data/archivos/2026/10/` y `id` del worker.
+
+**Reencolar proceso**: `UPDATE proceso_ingesta SET estado=1, intentos=0, error=NULL, locked_at=NULL WHERE id=N` (EstadoProceso: Pendiente=1, EnCurso=2, Ok=3, Error=4).

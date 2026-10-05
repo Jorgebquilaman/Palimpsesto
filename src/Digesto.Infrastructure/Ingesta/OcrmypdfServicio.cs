@@ -29,7 +29,7 @@ public class OcrmypdfServicio : IOcrServicio
             "ocrmypdf",
             [
                 "-l", "spa",
-                "--skip-text",
+                "--force-ocr",
                 "--deskew",
                 "--rotate-pages",
                 "--output-type", "pdf",
