@@ -311,3 +311,11 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 **nginx y .mjs**: la imagen base de nginx no mapea `.mjs`; se sirve `application/octet-stream` y el navegador rechaza el módulo. En `docker/nginx.conf` hay un `location ~* \.mjs$` con `types { }` + `default_type application/javascript`. OJO: un `types { include ... }` a nivel server rompe nginx (`unexpected "{"`) — solo el patrón location funciona.
 
 **Renders solapados en el canvas**: los callbacks `onPaginas`/`onEstado` pasados inline tienen identidad nueva en cada render → el useEffect de LienzosPdf se relanza → "Cannot use the same canvas during multiple render() operations". Fix: guardar los callbacks en refs (`cbPaginas.current`) fuera de las dependencias y cancelar el `RenderTask` previo (`tareaRender.current?.cancel()`).
+
+## Completar con AI leyendo el PDF original (visión)
+
+**Elección**: DeepSeek no acepta PDFs (su Files API es solo JPEG/PNG/GIF/WebP). En vez de mandar el texto del OCR (con errores), la API renderiza las páginas del PDF original a PNG (pdftoppm, 150 dpi, máx 8 págs) y las envía inline como `image_url` base64 al modelo de visión `deepseek-v4-flash-vision-exp` (forzado cuando hay imágenes, independiente del modelo configurado). El texto extraído va como referencia secundaria; si no hay PDF, cae al flujo de solo texto.
+
+**Costo**: el modelo de visión factura por dimensiones de imagen como tokens de entrada. 150 dpi y máx 8 páginas acota el gasto por norma.
+
+**Requisitos**: `poppler-utils` en la imagen de la API (Dockerfile.api). Modelos actuales de DeepSeek (v4): `deepseek-v4-flash`, `deepseek-v4-pro`, `deepseek-v4-flash-vision-exp`; los viejos `deepseek-chat/reasoner` quedaron obsoletos en la API pública.

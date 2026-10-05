@@ -9,14 +9,24 @@ public partial class AiNormaService : IAiNormaService
 {
     private readonly Persistencia.DigestoDbContext _db;
     private readonly IProveedorAi _proveedor;
+    private readonly Application.Archivos.IFileStorage _archivos;
+    private readonly Application.Ingesta.IProcesoRunner _procesos;
     private readonly ILogger<AiNormaService> _logger;
 
     private const int MaxCaracteresTexto = 12000;
+    private const int MaxPaginasPdf = 8;
 
-    public AiNormaService(Persistencia.DigestoDbContext db, IProveedorAi proveedor, ILogger<AiNormaService> logger)
+    public AiNormaService(
+        Persistencia.DigestoDbContext db,
+        IProveedorAi proveedor,
+        Application.Archivos.IFileStorage archivos,
+        Application.Ingesta.IProcesoRunner procesos,
+        ILogger<AiNormaService> logger)
     {
         _db = db;
         _proveedor = proveedor;
+        _archivos = archivos;
+        _procesos = procesos;
         _logger = logger;
     }
 
@@ -33,12 +43,26 @@ public partial class AiNormaService : IAiNormaService
             return ResultadoCompletarAi.Falla("Norma no encontrada");
         }
 
-        if (norma.Fragmentos.Count == 0)
+        List<byte[]> imagenes = [];
+        var texto = string.Join("\n\n", norma.Fragmentos.Select(f => f.Texto));
+
+        var original = await _db.NormasArchivos
+            .Where(a => a.NormaId == normaId && a.Rol == Domain.Enums.RolArchivo.Original)
+            .FirstOrDefaultAsync(ct);
+        if (original is not null)
         {
-            return ResultadoCompletarAi.Falla("El documento todavía no tiene texto procesado; esperá al worker o reprocesá");
+            var render = await RenderizarPaginasAsync(original.StorageKey, ct);
+            if (render.Count > 0)
+            {
+                imagenes = render;
+            }
         }
 
-        var texto = string.Join("\n\n", norma.Fragmentos.Select(f => f.Texto));
+        if (imagenes.Count == 0 && texto.Length == 0)
+        {
+            return ResultadoCompletarAi.Falla("El documento todavía no tiene PDF ni texto procesado; esperá al worker o reprocesá");
+        }
+
         if (texto.Length > MaxCaracteresTexto)
         {
             texto = texto[..MaxCaracteresTexto];
@@ -56,7 +80,8 @@ public partial class AiNormaService : IAiNormaService
 
         var sistema = """
             Sos un asistente que completa metadatos de normas institucionales de una universidad
-            argentina (IUPA). Recibís el texto completo de una norma y devolvés SOLO un objeto JSON
+            argentina (IUPA). Recibís las páginas del PDF original (imágenes) y, opcionalmente,
+            el texto extraído. Devolvés SOLO un objeto JSON
             válido (sin texto adicional), con estas claves:
             {
               "tipo_norma": código del tipo (de la lista provista),
@@ -77,15 +102,17 @@ public partial class AiNormaService : IAiNormaService
         var usuario = $"""
             Tipos de norma disponibles: {string.Join(", ", tiposDisponibles)}
             Órganos disponibles: {string.Join("; ", organosDisponibles.Select(o => $"{o.Codigo} = {o.Nombre}"))}
+            {(imagenes.Count > 0 ? $"Te adjunto {imagenes.Count} imágenes de las páginas del PDF original; analizá el documento directamente." : "")}
 
-            TEXTO DE LA NORMA:
-            {texto}
+            {(imagenes.Count == 0 ? $"TEXTO DE LA NORMA:\n{texto}" : (texto.Length > 0 ? $"Texto extraído de referencia (puede tener errores de OCR):\n{texto}" : ""))}
             """;
 
         string crudo;
         try
         {
-            crudo = await _proveedor.CompletarAsync(sistema, usuario, TimeSpan.FromSeconds(150), ct);
+            crudo = imagenes.Count > 0
+                ? await _proveedor.CompletarConImagenesAsync(sistema, usuario, imagenes, TimeSpan.FromSeconds(300), ct)
+                : await _proveedor.CompletarAsync(sistema, usuario, TimeSpan.FromSeconds(150), ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -213,6 +240,57 @@ public partial class AiNormaService : IAiNormaService
             Cadena("organo"),
             Cadena("vigencia"),
             citas);
+    }
+
+    private async Task<List<byte[]>> RenderizarPaginasAsync(string storageKey, CancellationToken ct)
+    {
+        var temporal = Path.Combine(Path.GetTempPath(), $"ai-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            await using (var flujo = await _archivos.AbrirAsync(storageKey, ct))
+            {
+                await using var destino = File.Create(temporal);
+                await flujo.CopyToAsync(destino, ct);
+            }
+
+            var directorio = Path.Combine(Path.GetTempPath(), $"ai-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directorio);
+
+            var resultado = await _procesos.EjecutarAsync(
+                "pdftoppm",
+                ["-png", "-r", "150", "-f", "1", "-l", MaxPaginasPdf.ToString(), temporal, Path.Combine(directorio, "pagina")],
+                TimeSpan.FromSeconds(120),
+                ct);
+
+            if (!resultado.Ok)
+            {
+                _logger.LogWarning("pdftoppm falló ({Codigo}): {Error}", resultado.CodigoSalida, Truncar(resultado.Error, 300));
+                return [];
+            }
+
+            var imagenes = Directory.GetFiles(directorio, "pagina-*.png")
+                .OrderBy(f => f)
+                .Select(File.ReadAllBytes)
+                .ToList();
+            _logger.LogInformation("AI: PDF renderizado a {Paginas} imágenes", imagenes.Count);
+            return imagenes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo renderizar el PDF para la AI");
+            return [];
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(temporal)) File.Delete(temporal);
+                var dir = Path.Combine(Path.GetTempPath());
+            }
+            catch
+            {
+            }
+        }
     }
 
     private async Task<List<string>> AplicarDatosAsync(Domain.Entidades.Norma norma, DatosAi datos, CancellationToken ct)

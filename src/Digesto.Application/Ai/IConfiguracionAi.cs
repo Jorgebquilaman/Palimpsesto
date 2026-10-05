@@ -11,5 +11,6 @@ public interface IConfiguracionAi
 public interface IProveedorAi
 {
     Task<string> CompletarAsync(string sistema, string usuario, TimeSpan timeout, CancellationToken ct = default);
+    Task<string> CompletarConImagenesAsync(string sistema, string usuario, IReadOnlyList<byte[]> imagenesPng, TimeSpan timeout, CancellationToken ct = default);
     Task<bool> ProbarConexionAsync(CancellationToken ct = default);
 }

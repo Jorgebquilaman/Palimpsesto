@@ -15,6 +15,7 @@ public class DeepSeekProveedor : IProveedorAi
 
     private const string BasePorDefecto = "https://api.deepseek.com";
     private const string ModeloPorDefecto = "deepseek-chat";
+    private const string ModeloVision = "deepseek-v4-flash-vision-exp";
 
     public DeepSeekProveedor(IConfiguracionAi configuracion, IHttpClientFactory fabrica, ILogger<DeepSeekProveedor> logger)
     {
@@ -25,21 +26,48 @@ public class DeepSeekProveedor : IProveedorAi
 
     public async Task<string> CompletarAsync(string sistema, string usuario, TimeSpan timeout, CancellationToken ct = default)
     {
+        return await EnviarAsync(sistema, usuario, imagenes: null, timeout, ct);
+    }
+
+    public async Task<string> CompletarConImagenesAsync(string sistema, string usuario, IReadOnlyList<byte[]> imagenesPng, TimeSpan timeout, CancellationToken ct = default)
+    {
+        return await EnviarAsync(sistema, usuario, imagenesPng, timeout, ct);
+    }
+
+    private async Task<string> EnviarAsync(string sistema, string usuario, IReadOnlyList<byte[]>? imagenes, TimeSpan timeout, CancellationToken ct)
+    {
         var config = await _configuracion.LeerAsync(ct)
             ?? throw new InvalidOperationException("La API de DeepSeek no está configurada; cargá la clave en Inteligencia artificial");
+
+        var modelo = config.Modelo is { Length: > 0 } ? config.Modelo : ModeloPorDefecto;
+        if (imagenes is { Count: > 0 })
+        {
+            modelo = ModeloVision;
+        }
 
         var cliente = _fabrica.CreateClient("deepseek");
         cliente.BaseAddress = new Uri((config.BaseUrl is { Length: > 0 } ? config.BaseUrl : BasePorDefecto).TrimEnd('/') + '/');
         cliente.Timeout = timeout;
         cliente.DefaultRequestHeaders.Authorization = new("Bearer", config.ClaveApi);
 
+        var bloqueTexto = new Dictionary<string, object> { ["type"] = "text", ["text"] = usuario };
+        var bloques = new List<object> { bloqueTexto };
+        foreach (var imagen in imagenes ?? [])
+        {
+            bloques.Add(new Dictionary<string, object>
+            {
+                ["type"] = "image_url",
+                ["image_url"] = new Dictionary<string, string> { ["url"] = $"data:image/png;base64,{Convert.ToBase64String(imagen)}" },
+            });
+        }
+
         var pedido = new
         {
-            model = config.Modelo is { Length: > 0 } ? config.Modelo : ModeloPorDefecto,
+            model = modelo,
             messages = new object[]
             {
                 new { role = "system", content = sistema },
-                new { role = "user", content = usuario },
+                new { role = "user", content = bloques },
             },
             response_format = new { type = "json_object" },
             temperature = 0.1,

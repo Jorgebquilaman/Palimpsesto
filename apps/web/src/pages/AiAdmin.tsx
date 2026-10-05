@@ -11,7 +11,7 @@ export default function AiAdmin() {
   })
 
   const [clave, setClave] = useState('')
-  const [modelo, setModelo] = useState('deepseek-chat')
+  const [modelo, setModelo] = useState('deepseek-v4-flash')
   const [baseUrl, setBaseUrl] = useState('https://api.deepseek.com')
   const [mensaje, setMensaje] = useState('')
 
@@ -73,8 +73,9 @@ export default function AiAdmin() {
             <label className="block text-sm">
               <span className="mb-1 block text-xs font-medium text-ink-soft">Modelo</span>
               <select value={modelo} onChange={(e) => setModelo(e.target.value)} className="campo">
-                <option value="deepseek-chat">deepseek-chat (rápido, económico)</option>
-                <option value="deepseek-reasoner">deepseek-reasoner (razonador)</option>
+                <option value="deepseek-v4-flash">deepseek-v4-flash (rápido, económico)</option>
+                <option value="deepseek-v4-pro">deepseek-v4-pro (pro)</option>
+                <option value="deepseek-v4-flash-vision-exp">deepseek-v4-flash-vision-exp (visión)</option>
               </select>
             </label>
             <label className="block text-sm">
