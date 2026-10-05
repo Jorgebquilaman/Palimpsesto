@@ -31,8 +31,8 @@ export default function NormasAdmin() {
       <DropzoneNormas />
 
       {procesos && procesos.length > 0 && (
-        <section aria-label="Procesos de ingesta" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">Últimos procesos</h2>
+        <section aria-label="Procesos de ingesta" className="panel p-4">
+          <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Últimos procesos</h2>
           <ul className="space-y-1 text-sm">
             {procesos.slice(0, 5).map(p => (
               <li key={p.id} className="flex items-center gap-3">
@@ -42,8 +42,8 @@ export default function NormasAdmin() {
                 <Link to={`/admin/normas/${p.normaId}`} className="underline">
                   norma {p.normaId.slice(0, 8)}
                 </Link>
-                {p.etapa && <span className="text-xs text-gray-500">etapa: {p.etapa}</span>}
-                {p.error && <span className="truncate text-xs text-red-600 dark:text-red-400">{p.error}</span>}
+                {p.etapa && <span className="text-xs text-ink-faint">etapa: {p.etapa}</span>}
+                {p.error && <span className="truncate text-xs text-derogada-texto">{p.error}</span>}
               </li>
             ))}
           </ul>
@@ -59,16 +59,16 @@ export default function NormasAdmin() {
           ))}
         </select>
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por título"
-          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800" />
+          className="campo flex-1" />
       </form>
 
-      {isError && <p role="alert" className="text-sm text-red-600">{(error as Error).message}</p>}
-      {isPending && <p aria-live="polite" className="text-sm text-gray-500">Cargando…</p>}
+      {isError && <p role="alert" className="text-sm text-derogada-texto">{(error as Error).message}</p>}
+      {isPending && <p aria-live="polite" className="text-sm text-ink-faint">Cargando…</p>}
 
       {data && (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm dark:border-gray-800">
+        <div className="overflow-x-auto rounded-md border border-line shadow-sm">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-800">
+            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-ink-faint dark:bg-gray-800">
               <tr>
                 <th className="px-3 py-2">Código</th>
                 <th className="px-3 py-2">Título</th>
@@ -78,7 +78,7 @@ export default function NormasAdmin() {
             </thead>
             <tbody>
               {data.items.map(n => (
-                <tr key={n.id} className="border-t border-gray-100 dark:border-gray-800">
+                <tr key={n.id} className="border-t border-line">
                   <td className="px-3 py-2 font-mono text-xs">
                     <Link to={`/admin/normas/${n.id}`} className="underline">{n.codigoNormalizado}</Link>
                   </td>
@@ -88,11 +88,11 @@ export default function NormasAdmin() {
                       {ETIQUETAS_ESTADO[n.estado] ?? n.estado}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs text-gray-500">{n.fechaSancion}</td>
+                  <td className="px-3 py-2 text-xs text-ink-faint">{n.fechaSancion}</td>
                 </tr>
               ))}
               {data.items.length === 0 && (
-                <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-500">Sin resultados.</td></tr>
+                <tr><td colSpan={4} className="px-3 py-6 text-center text-ink-faint">Sin resultados.</td></tr>
               )}
             </tbody>
           </table>
@@ -103,7 +103,7 @@ export default function NormasAdmin() {
 }
 
 function badgeProceso(estado: number): string {
-  return ['', 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300',
-    'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
-    'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'][estado] ?? ''
+  return ['', 'bg-crema-200 text-modificada-texto',
+    'bg-verde-100 text-vigente-texto',
+    'bg-barro-100 text-derogada-texto'][estado] ?? ''
 }

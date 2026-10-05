@@ -40,22 +40,22 @@ export default function DropzoneNormas() {
           setArrastrando(false)
           procesar(e.dataTransfer.files)
         }}
-        className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+        className={`flex flex-col items-center justify-center rounded-md border-2 border-dashed p-8 text-center transition-colors ${
           arrastrando
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-            : 'border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900'
+            ? 'border-barro-500 bg-barro-100'
+            : 'border-barro-300 bg-surface'
         }`}
       >
         <input ref={input} type="file" accept="application/pdf" multiple className="sr-only"
           onChange={(e) => procesar(e.target.files)} />
         <p className="font-medium">Arrastrá los PDFs acá, o hacé clic para elegirlos</p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-ink-faint dark:text-ink-faint">
           Máximo 50 MB por archivo · solo PDF se acepta · los originales quedan inmutables
         </p>
         {subir.isPending && <p aria-live="polite" className="mt-3 text-sm text-blue-700 dark:text-blue-400">Subiendo y procesando…</p>}
       </div>
 
-      {subir.isError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{(subir.error as Error).message}</p>}
+      {subir.isError && <p role="alert" className="text-sm text-derogada-texto">{(subir.error as Error).message}</p>}
 
       {subir.data && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-800 dark:bg-gray-800">
@@ -73,7 +73,7 @@ export default function DropzoneNormas() {
             </ul>
           )}
           {subir.data.errores.map(e => (
-            <p key={e.archivo} className="text-red-600 dark:text-red-400">❌ {e.archivo}: {e.error}</p>
+            <p key={e.archivo} className="text-derogada-texto">❌ {e.archivo}: {e.error}</p>
           ))}
         </div>
       )}

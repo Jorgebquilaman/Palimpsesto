@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, Outlet } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { cerrarSesion, guardarToken, sesionActual } from '../api/adminApi'
 
@@ -47,21 +47,21 @@ function Login() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm items-center px-4">
-      <form onSubmit={iniciar} className="w-full space-y-3 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <form onSubmit={iniciar} className="w-full space-y-3 panel p-6">
         <h1 className="text-xl font-bold">Backoffice — Digesto IUPA</h1>
         <label className="block text-sm">
           Usuario
           <input value={usuario} onChange={(e) => setUsuario(e.target.value)} autoFocus required
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800" />
+            className="mt-1 campo" />
         </label>
         <label className="block text-sm">
           Contraseña
           <input type="password" value={contrasenia} onChange={(e) => setContrasenia(e.target.value)} required
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800" />
+            className="mt-1 campo" />
         </label>
-        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-sm text-derogada-texto">{error}</p>}
         <button type="submit" disabled={cargando}
-          className="w-full rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+          className="w-full btn-primario disabled:opacity-50">
           {cargando ? 'Ingresando…' : 'Ingresar'}
         </button>
       </form>
@@ -72,33 +72,68 @@ function Login() {
 export function LayoutAdmin() {
   const sesion = sesionActual()
   const navegar = useNavigate()
+  const ubicacion = useLocation()
 
   if (!sesion) {
     return <Navigate to="/admin" replace />
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-gray-200 dark:border-gray-800">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <Link to="/" className="font-bold">Digesto IUPA</Link>
-          <nav aria-label="Navegación del backoffice" className="flex gap-3 text-sm">
+    <div className="sin-textura min-h-screen bg-crema-50">
+      <div className="mx-auto flex max-w-7xl">
+        <aside className="no-print sticky top-0 hidden h-screen w-56 shrink-0 flex-col bg-verde-950 p-4 text-crema-100 md:flex">
+          <span className="mb-6 mt-2 flex items-center gap-2 font-display text-lg font-semibold">
+            <span aria-hidden="true" className="grid h-7 w-7 place-items-center rounded-sm bg-acento text-sm text-verde-950">✦</span>
+            Backoffice
+          </span>
+          <nav flex-col className="flex">
+            <EnlaceSidebar ruta="/admin/normas" activa={ubicacion.pathname.startsWith('/admin/normas')}>Normas</EnlaceSidebar>
+            <EnlaceSidebar ruta="/admin/catalogos" activa={ubicacion.pathname === '/admin/catalogos'}>Catálogos</EnlaceSidebar>
+            <EnlaceSidebar ruta="/admin/auditoria" activa={ubicacion.pathname === '/admin/auditoria'}>Auditoría</EnlaceSidebar>
+            <EnlaceSidebar ruta="/admin/usuarios" activa={ubicacion.pathname === '/admin/usuarios'}>Usuarios</EnlaceSidebar>
+          </nav>
+          <div className="mt-auto space-y-1 text-sm">
+            <p>{sesion.nombre}</p>
+            <p className="text-xs text-crema-100/50">{sesion.rol}</p>
+            <button onClick={() => { cerrarSesion(); navegar('/admin') }} className="mt-2 underline underline-offset-2 hover:text-barro-300">
+              Salir
+            </button>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <div className="no-print flex items-center gap-3 px-4 py-3 md:hidden">
+            <Link to="/" className="font-display font-semibold text-verde-900">Digesto IUPA</Link>
+            <button onClick={() => { cerrarSesion(); navegar('/admin') }} className="ml-auto text-sm text-ink-soft underline">Salir</button>
+          </div>
+          <nav aria-label="Navegación del backoffice" className="no-print flex gap-3 overflow-x-auto border-b border-line px-4 pb-2 text-sm md:hidden">
             <Link to="/admin/normas">Normas</Link>
             <Link to="/admin/catalogos">Catálogos</Link>
             <Link to="/admin/auditoria">Auditoría</Link>
             <Link to="/admin/usuarios">Usuarios</Link>
           </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">{sesion.nombre} ({sesion.rol})</span>
-            <button onClick={() => { cerrarSesion(); navegar('/admin') }} className="underline">
-              Salir
-            </button>
+          <div className="px-4 py-6 sm:px-6">
+            <Outlet />
           </div>
         </div>
-      </header>
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <Outlet />
       </div>
     </div>
+  )
+}
+
+function EnlaceSidebar({ ruta, activa, children }: { ruta: string; activa: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      to={ruta}
+      aria-current={activa ? 'page' : undefined}
+      className={`mb-1 flex items-center rounded-sm px-3 py-2 text-sm transition-colors ${
+        activa
+          ? 'bg-crema-100/10 font-semibold text-crema-100'
+          : 'text-crema-100/70 hover:bg-crema-100/5 hover:text-crema-100'
+      }`}
+    >
+      <span className="rombo" aria-hidden="true">{activa ? '✦' : ''}</span>
+      {children}
+    </Link>
   )
 }

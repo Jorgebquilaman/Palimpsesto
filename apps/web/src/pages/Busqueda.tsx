@@ -52,7 +52,6 @@ export default function Busqueda() {
     setTextoBusqueda(q)
   }, [q])
 
-  const hayFiltrosAdelantados = Boolean(desde || hasta || vigencia)
 
   function actualizar(cambios: Record<string, string | number | undefined>) {
     const nuevos = new URLSearchParams(parametros)
@@ -106,24 +105,26 @@ export default function Busqueda() {
   ].filter(Boolean) as { etiqueta: string; clave: string }[]
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Digesto Normativo IUPA</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Búsqueda de normas institucionales. El PDF firmado es el documento oficial.{' '}
-          <Link to="/boletin" className="underline">Boletín Oficial →</Link>
-        </p>
-        <div className="mt-2">
-          <Link
-            to="/admin"
-            className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-          >
-            Ingresar al backoffice
-          </Link>
+    <>
+      <section className="hero-verde no-print relative px-4 pb-10 pt-14 sm:pb-14">
+        <div className="relative mx-auto max-w-3xl text-center">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-crema-100/70">
+            Instituto Universitario Patagónico de las Artes
+          </p>
+          <h1 className="font-display text-display font-semibold tracking-tight">
+            Búsqueda de normas
+          </h1>
+          <p className="mx-auto mt-3 max-w-lg font-lectura text-sm opacity-80 sm:text-base">
+            El PDF firmado es el documento oficial.{' '}
+            <Link to="/boletin" className="underline underline-offset-2">
+              Boletín Oficial →
+            </Link>
+          </p>
         </div>
-      </header>
+      </section>
 
-      <section aria-label="Formulario de búsqueda" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <main className="mx-auto -mt-7 max-w-6xl px-4 pb-16 sm:-mt-10">
+      <section aria-label="Formulario de búsqueda" className="panel panel-elevada rounded-lg p-4 sm:p-6">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -138,7 +139,7 @@ export default function Busqueda() {
                 value={textoBusqueda}
                 onChange={(e) => setTextoBusqueda(e.target.value)}
                 placeholder="Buscar en el texto, o una cita como Res. 123/2024"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+                className="campo"
                 list="sugerencias-codigos"
               />
               {sugerencias && sugerencias.length > 0 && (
@@ -148,10 +149,10 @@ export default function Busqueda() {
                       <option key={s.codigo} value={s.codigo}>{s.titulo}</option>
                     ))}
                   </datalist>
-                  <ul className="mt-1 text-xs text-gray-500 dark:text-gray-400" aria-label="Sugerencias">
+                  <ul className="mt-1 text-xs text-ink-faint dark:text-ink-faint" aria-label="Sugerencias">
                     {sugerencias.slice(0, 3).map(s => (
                       <li key={s.codigo}>
-                        <button type="button" className="underline hover:text-gray-800 dark:hover:text-gray-200" onClick={() => actualizar({ q: s.codigo })}>
+                        <button type="button" className="underline hover:text-ink" onClick={() => actualizar({ q: s.codigo })}>
                           {s.titulo}
                         </button>
                       </li>
@@ -162,7 +163,7 @@ export default function Busqueda() {
             </label>
 
             <fieldset className="md:col-span-2">
-              <legend className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">Modo de búsqueda</legend>
+              <legend className="mb-1 text-xs font-medium text-ink-soft">Modo de búsqueda</legend>
               <div className="flex flex-wrap gap-3 text-sm">
                 {MODOS.map(m => (
                   <label key={m.valor} className="flex items-center gap-1">
@@ -186,7 +187,7 @@ export default function Busqueda() {
                 value={numero}
                 onChange={(e) => actualizar({ numero: e.target.value })}
                 placeholder="Número"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+                className="campo"
               />
             </label>
 
@@ -195,7 +196,7 @@ export default function Busqueda() {
               <select
                 value={anio}
                 onChange={(e) => actualizar({ anio: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+                className="campo"
               >
                 <option value="">Año</option>
                 {(catalogos?.anios ?? []).map(a => (
@@ -210,11 +211,11 @@ export default function Busqueda() {
               type="button"
               onClick={() => setFiltrosAbiertos(a => !a)}
               aria-expanded={filtrosAbiertos}
-              className="text-sm font-medium text-blue-700 underline dark:text-blue-400"
+              className="text-sm font-medium text-acento-texto underline"
             >
               {filtrosAbiertos ? 'Ocultar filtros avanzados' : 'Filtros avanzados'}
             </button>
-            <button type="submit" className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+            <button type="submit" className="btn-primario">
               Buscar
             </button>
           </div>
@@ -224,7 +225,7 @@ export default function Busqueda() {
               <label className="text-sm">
                 Tipo
                 <select value={tipoId} onChange={(e) => actualizar({ tipoId: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+                  className="mt-1 campo">
                   <option value="">Todos</option>
                   {(catalogos?.tipos ?? []).map(t => (
                     <option key={t.id} value={t.id}>{t.nombre}</option>
@@ -234,7 +235,7 @@ export default function Busqueda() {
               <label className="text-sm">
                 Órgano emisor
                 <select value={organoId} onChange={(e) => actualizar({ organoId: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+                  className="mt-1 campo">
                   <option value="">Todos</option>
                   {(catalogos?.organos ?? []).map(o => (
                     <option key={o.id} value={o.id}>{o.nombre}</option>
@@ -244,17 +245,17 @@ export default function Busqueda() {
               <label className="text-sm">
                 Sanción desde
                 <input type="date" value={desde} onChange={(e) => actualizar({ desde: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800" />
+                  className="mt-1 campo" />
               </label>
               <label className="text-sm">
                 Sanción hasta
                 <input type="date" value={hasta} onChange={(e) => actualizar({ hasta: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800" />
+                  className="mt-1 campo" />
               </label>
               <label className="text-sm">
                 Vigencia
                 <select value={vigencia} onChange={(e) => actualizar({ vigencia: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+                  className="mt-1 campo">
                   <option value="">Todas</option>
                   {(catalogos?.vigencias ?? []).map(v => (
                     <option key={v} value={v}>{ETIQUETAS_VIGENCIA[v] ?? v}</option>
@@ -273,12 +274,12 @@ export default function Busqueda() {
               key={chip.clave}
               type="button"
               onClick={() => actualizar({ [chip.clave]: undefined })}
-              className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-800 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300"
+              className="chip chip-activo"
             >
               {chip.etiqueta} <span aria-hidden="true">×</span>
             </button>
           ))}
-          <button type="button" onClick={limpiarTodo} className="text-xs underline text-gray-600 dark:text-gray-400">
+          <button type="button" onClick={limpiarTodo} className="text-xs underline text-ink-soft">
             limpiar filtros
           </button>
         </div>
@@ -287,16 +288,16 @@ export default function Busqueda() {
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px]">
         <section aria-label="Resultados">
           {isError && (
-            <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+            <p role="alert" className="panel p-4 text-sm text-derogada-texto">
               Error al buscar: {(error as Error)?.message ?? 'intente de nuevo'}
             </p>
           )}
 
-          {isPending && !resultados && <p aria-live="polite" className="text-sm text-gray-500">Cargando resultados…</p>}
+          {isPending && !resultados && <p aria-live="polite" className="text-sm text-ink-faint">Cargando resultados…</p>}
 
           {resultados && (
             <>
-              <div className="mb-3 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+              <div className="mb-3 flex items-center justify-between text-sm text-ink-soft">
                 <p aria-live="polite">
                   {resultados.total} norma{resultados.total === 1 ? '' : 's'} · {resultados.tookMs} ms
                 </p>
@@ -314,7 +315,7 @@ export default function Busqueda() {
               {resultados.items.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
                   <p className="font-medium">No se encontraron normas.</p>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  <p className="mt-1 text-sm text-ink-soft">
                     Probá con menos palabras o sin filtros.
                   </p>
                 </div>
@@ -322,18 +323,18 @@ export default function Busqueda() {
                 <>
                   <ul className="space-y-3">
                     {resultados.items.map(item => (
-                      <li key={item.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                        <p className="mb-1 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <li key={item.id} className="panel p-4">
+                        <p className="mb-1 flex flex-wrap items-center gap-2 text-xs text-ink-faint dark:text-ink-faint">
                           <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">{item.codigo}</span>
                           <BadgeVigencia vigencia={item.vigencia} />
-                          {item.tieneOcr && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800 dark:bg-amber-950 dark:text-amber-300">texto OCR</span>}
+                          {item.tieneOcr && <span className="rounded bg-barro-100 px-1.5 py-0.5 text-acento-texto">texto OCR</span>}
                         </p>
                         <h2 className="font-semibold">
                           <Link className="underline-offset-2 hover:underline" to={`/normas/${item.codigo}${q ? `?q=${encodeURIComponent(q)}` : ''}`}>
                             {item.tipoNombre} N° {item.numero}/{item.anio} — {item.titulo}
                           </Link>
                         </h2>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        <p className="mt-1 text-sm text-ink-soft">
                           {item.organoNombre} · sanción {item.fechaSancion}
                           {item.fechaPublicacion && <> · publicación {item.fechaPublicacion}</>}
                         </p>
@@ -376,19 +377,17 @@ export default function Busqueda() {
         </aside>
       </div>
 
-      {hayFiltrosAdelantados && !chipsActivos.find(c => c.clave === 'vigencia') && (
-        <button type="button" onClick={() => setFiltrosAbiertos(true)} className="sr-only">Abrir filtros</button>
-      )}
     </main>
+    </>
   )
 }
 
 function BadgeVigencia({ vigencia }: { vigencia: string }) {
   const estilos: Record<string, string> = {
-    vigente: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
-    modificada: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
-    derogada: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
-    derogada_parcialmente: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
+    vigente: 'bg-verde-100 text-vigente-texto',
+    modificada: 'bg-crema-200 text-modificada-texto',
+    derogada: 'bg-barro-100 text-derogada-texto',
+    derogada_parcialmente: 'bg-barro-100 text-derogada-texto',
     deja_sin_efecto: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
   }
   return (
@@ -412,8 +411,8 @@ function Faceta({
   nombreActivo?: string
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-      <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{titulo}</h3>
+    <div className="panel p-4">
+      <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint dark:text-ink-faint">{titulo}</h3>
       <ul className="space-y-1 text-sm">
         {conteos.map(c => {
           const seleccionado = nombreActivo === String(c.id)
@@ -422,11 +421,11 @@ function Faceta({
               <button
                 type="button"
                 onClick={() => seleccionar(seleccionado ? undefined : c.id)}
-                className={`flex w-full items-center justify-between rounded px-1 py-0.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 ${seleccionado ? 'font-semibold text-blue-700 dark:text-blue-400' : ''}`}
+                className={`flex w-full items-center justify-between rounded px-1 py-0.5 text-left hover:bg-verde-50 ${seleccionado ? 'font-semibold text-blue-700 dark:text-blue-400' : ''}`}
                 aria-pressed={seleccionado}
               >
                 <span>{formatear(c.nombre)}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{c.cantidad}</span>
+                <span className="text-xs text-ink-faint dark:text-ink-faint">{c.cantidad}</span>
               </button>
             </li>
           )
@@ -442,12 +441,12 @@ function Paginador({ page, total, pageSize, onCambiar }: { page: number; total: 
   return (
     <nav aria-label="Paginación" className="mt-4 flex items-center gap-2">
       <button type="button" disabled={page <= 1} onClick={() => onCambiar(page - 1)}
-        className="rounded border px-3 py-1 text-sm disabled:opacity-40 dark:border-gray-700">
+        className="btn-secundario px-3 py-1">
         ← Anterior
       </button>
-      <span className="text-sm text-gray-600 dark:text-gray-400">Página {page} de {paginas}</span>
+      <span className="text-sm text-ink-soft">Página {page} de {paginas}</span>
       <button type="button" disabled={page >= paginas} onClick={() => onCambiar(page + 1)}
-        className="rounded border px-3 py-1 text-sm disabled:opacity-40 dark:border-gray-700">
+        className="btn-secundario px-3 py-1">
         Siguiente →
       </button>
     </nav>
