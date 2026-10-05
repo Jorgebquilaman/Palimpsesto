@@ -283,3 +283,5 @@ Los grupos colapsan con chevron rotado y se auto-abren si la ruta activa pertene
 5. Responde con los campos aplicados + relaciones creadas; el front las muestra y refresca el formulario
 
 **Test del parser**: `ParsearRespuesta` tolera cercas markdown (`\`\`\`json`), texto alrededor del JSON y claves ausentes (todo nulo). `InternalsVisibleTo` habilitado para Digesto.Tests.
+
+El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la entidad pero nunca generé la migración. Plantilla: **cada entidad nueva → migración inmediata**, el backend con modelo sin migración arranca pero explota al tocar la tabla faltante (PostgresException 42P01).
