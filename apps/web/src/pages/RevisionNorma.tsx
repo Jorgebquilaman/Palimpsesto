@@ -267,13 +267,13 @@ export default function RevisionNorma() {
         <section aria-label="PDF original" className="panel p-4">
           <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>PDF original (documento oficial, inmutable)</h2>
           {norma.archivos.find(a => a.rol === 'original') ? (
-            <embed src={pdfUrl} type="application/pdf" className="h-[70vh] w-full rounded-md" aria-label="PDF original de la norma" />
+            <embed src={pdfUrl} type="application/pdf" className="h-[70vh] w-full rounded-md lg:h-[calc(100vh-13rem)]" aria-label="PDF original de la norma" />
           ) : (
             <p className="text-sm text-ink-faint">Sin PDF cargado.</p>
           )}
         </section>
 
-        <section aria-label="Metadatos sugeridos" className="space-y-3">
+        <section aria-label="Metadatos sugeridos" className="space-y-3 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1">
 
           <form
             onSubmit={(e) => { e.preventDefault(); guardarTodo.mutate() }}
