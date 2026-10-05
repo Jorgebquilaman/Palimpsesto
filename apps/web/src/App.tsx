@@ -12,6 +12,7 @@ import AuditoriaAdmin from './pages/AuditoriaAdmin'
 import UsuariosAdmin from './pages/UsuariosAdmin'
 import AiAdmin from './pages/AiAdmin'
 import AdminBoletines from './pages/AdminBoletines'
+import PerfilUsuario from './pages/PerfilUsuario'
 
 function EnPantallaPublica() {
   const ubicacion = useLocation()
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="usuarios" element={<UsuariosAdmin />} />
             <Route path="ai" element={<AiAdmin />} />
             <Route path="boletines" element={<AdminBoletines />} />
+            <Route path="perfil" element={<PerfilUsuario />} />
           </Route>
         </Route>
 

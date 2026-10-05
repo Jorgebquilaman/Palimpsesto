@@ -351,3 +351,13 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 ## Boletines paginados y con búsqueda
 
 `GET /boletines` (público) ahora admite `page`, `q` (ILIKE sobre numero y observaciones) y `pageSize` (default 10, cap 100). La página pública `/boletin` usa paginación de 10 con buscador arriba del listado; el backoffice pide pageSize 50.
+
+## Producción (servidor directo, sin Docker)
+
+**Objetivo**: 172.16.0.25 (Debian 12, host "edictos"), SSH soporte + su (sin sudo en la máquina, la clave de root es la del usuario).
+
+**Stack instalado**: nginx (sites-available/digesto.conf), PostgreSQL 15 (db `digesto`, rol `digesto`, clave en /tmp/pg_clave_digesto local), aspnetcore-runtime-8.0 desde packages.microsoft.com (curl, no wget).
+
+**Layout server**: /opt/boletin/{api,worker,web,archivos}. La API en 127.0.0.1:8080, worker en 8081. Servicios systemd: digesto-api, digesto-worker (Restart=always). Frontend estático + proxy /api + client_max_body_size 1100m + no-cache en index.html.
+
+**Lecciones**: (1) `mv x/* .` con carpeta destino existente anida (mv /tmp/boletin-api /opt/boletin/api → api/boletin-api); desenrollar con mv boletin-api/* . (2) `pg_prewarm` NO es trusted: CREATE EXTENSION requiere superusuario → crear como postgres ANTES del primer arranque (unaccent y pg_trgm sí son trusted). (3) El seed genera admin con SEED_ADMIN_PASSWORD y el validador de Identity exige mayúscula+minúscula+dígito+símbolo: usar formato Iupa-hex! (la primera clave hex falló y el admin no se creó; el seed re-intenta en cada arranque si falta el usuario). (4) Root SSH denegado (PermitRootLogin no): usar su con la clave de root. (5) Instalar rsync en el server antes de rsync desde local.

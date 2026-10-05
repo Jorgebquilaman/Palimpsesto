@@ -136,6 +136,7 @@ export function LayoutAdmin() {
           <HojaSimple ruta="/admin/boletines" icono="▣" activa={ruta === '/admin/boletines'}>Boletines oficiales</HojaSimple>
           <HojaSimple ruta="/admin/ai" icono="✦" activa={ruta === '/admin/ai'}>Inteligencia artificial</HojaSimple>
           <HojaSimple ruta="/admin/auditoria" icono="❝" activa={ruta === '/admin/auditoria'}>Auditoría</HojaSimple>
+          <HojaSimple ruta="/admin/perfil" icono="●" activa={ruta === '/admin/perfil'}>Mi perfil</HojaSimple>
           <HojaSimple ruta="/admin/usuarios" icono="◉" activa={ruta === '/admin/usuarios'}>Usuarios y roles</HojaSimple>
         </nav>
 
