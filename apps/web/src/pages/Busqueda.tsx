@@ -113,6 +113,14 @@ export default function Busqueda() {
           Búsqueda de normas institucionales. El PDF firmado es el documento oficial.{' '}
           <Link to="/boletin" className="underline">Boletín Oficial →</Link>
         </p>
+        <div className="mt-2">
+          <Link
+            to="/admin"
+            className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          >
+            Ingresar al backoffice
+          </Link>
+        </div>
       </header>
 
       <section aria-label="Formulario de búsqueda" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
