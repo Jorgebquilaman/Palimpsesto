@@ -163,7 +163,20 @@ export default function Norma() {
 
           <div className="mt-4">
             {pestana === 'texto' && texto && (
-              <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+              <div className={texto.fragmentos.length > 0 ? "grid gap-4 md:grid-cols-[260px_1fr]" : "grid gap-4"}>
+                {norma.resumen && (
+                  <section aria-label="Resumen de la norma" className="panel p-5 md:col-span-2">
+                    <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Resumen</h2>
+                    <p className="font-lectura text-[15px] leading-relaxed">{norma.resumen}</p>
+                  </section>
+                )}
+                {texto.fragmentos.length === 0 && (
+                  <div className="panel border-dashed p-6 text-center text-sm text-ink-faint">
+                    El texto completo todavía no está estructurado. El documento oficial es el PDF de la solapa "PDF original".
+                  </div>
+                )}
+                {texto.fragmentos.length > 0 && (
+                <>
                 <aside aria-label="Índice de artículos" className="no-print sticky top-24 max-h-[75vh] overflow-auto self-start rounded-md border border-line bg-surface p-3 shadow-xs">
                   <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Índice</h3>
                   <ol className="space-y-1 text-sm">
@@ -188,6 +201,8 @@ export default function Norma() {
                     terminos={terminoInterior || q}
                   />
                 </section>
+                </>
+                )}
               </div>
             )}
 
