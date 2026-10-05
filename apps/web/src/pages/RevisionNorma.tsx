@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin } from '../api/adminApi'
+import { ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, tokenActual } from '../api/adminApi'
 import type { NormaAdminDetalle } from '../api/adminApi'
 
 export default function RevisionNorma() {
@@ -120,6 +120,31 @@ export default function RevisionNorma() {
 
   const codigoNormalizado = normaa?.codigoNormalizado ?? ''
 
+  const { data: pdfUrl } = useQuery({
+    queryKey: ['admin-norma-pdf', id],
+    queryFn: async () => {
+      const respuesta = await fetch(`/api/v1/admin/normas/${id}/pdf`, {
+        headers: { Authorization: `Bearer ${tokenActual() ?? ''}` },
+      })
+      if (!respuesta.ok) {
+        throw new Error('No se pudo cargar el PDF')
+      }
+      const blob = await respuesta.blob()
+      return URL.createObjectURL(blob)
+    },
+    enabled: !!normaa,
+    staleTime: Infinity,
+    retry: 1,
+  })
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+      }
+    }
+  }, [pdfUrl])
+
   const { data: relaciones } = useQuery({
     queryKey: ['admin-norma-relaciones', id, codigoNormalizado],
     queryFn: () => pedirAdmin<{
@@ -162,7 +187,7 @@ export default function RevisionNorma() {
         <section aria-label="PDF original" className="panel p-4">
           <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>PDF original (documento oficial, inmutable)</h2>
           {norma.archivos.find(a => a.rol === 'original') ? (
-            <embed src={`/api/v1/admin/normas/${norma.id}/pdf-admin`} type="application/pdf" className="h-[70vh] w-full rounded-lg" />
+            <embed src={pdfUrl} type="application/pdf" className="h-[70vh] w-full rounded-md" aria-label="PDF original de la norma" />
           ) : (
             <p className="text-sm text-ink-faint">Sin PDF cargado.</p>
           )}

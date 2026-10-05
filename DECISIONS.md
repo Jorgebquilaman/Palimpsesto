@@ -227,3 +227,9 @@ Todo con radios y colores de tokens; el contraste WCAG AA sigue pasando (15 pare
 ## Fix — React error #310 (hooks desbalanceados)
 
 **La consulta de relaciones en `RevisionNorma` estaba después de los `return` tempranos (`isPending`/`isError`)**: al pasar de cargando a datos, el componente renderizaba con un hook más y React cortaba con #310. Regla aplicada: TODOS los hooks arriba del componente, sin excepción; las dependencias condicionales se logran con `enabled` de TanStack Query, nunca con returns tempranos antes de hooks. Verifiqué el resto de las pantallas: ninguna tenía el patrón.
+
+## Fix — PDF de revisión (404 + auth)
+
+**Dos fallas encadenadas**: el front pedía `/admin/normas/{id}/pdf-admin` (endpoint inexistente; el real es `/{id}/pdf`) y, aun con la URL correcta, un `<embed src>` no manda el header `Authorization` → 401. Solución: fetch con el JWT → `blob` → `URL.createObjectURL` para el embed, con `revokeObjectURL` al desmontar (fuga de memoria evitada) y `staleTime: Infinity` (el PDF es inmutable).
+
+**Nota de operación**: quedó comprobado que un `dotnet run` local escuchando en 5008 enmascara al contenedor Docker (produce 500 con rutas del filesystem local y confunde el diagnóstico). Al probar el stack, verificar `lsof -i :5008` o matar los `dotnet run` locales.
