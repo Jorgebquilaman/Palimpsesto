@@ -3,16 +3,17 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { VisorPdf } from '../components/VisorPdf'
 import { useDebounce } from '../components/useDebounce'
+import { Badge } from '../components/ui'
 
 interface BoletinListado {
   id: number
   numero: string
   fechaPublicacion: string
   observaciones: string | null
+  tienePdf: boolean
 }
 
 interface BoletinDetalle extends BoletinListado {
-  tienePdf: boolean
   normas: {
     codigoNormalizado: string
     tipo: string
@@ -25,20 +26,27 @@ interface BoletinDetalle extends BoletinListado {
   totalNormas: number
 }
 
+const porPagina = 10
+
 export default function Boletin() {
   const { numero: numeroRuta } = useParams()
   const [parametros] = useSearchParams()
   const numero = numeroRuta ?? parametros.get('numero')
-  const [pestana, setPestana] = useState<'normas' | 'pdf'>('normas')
 
+  if (numero) {
+    return <DetalleBoletin numero={numero} />
+  }
+  return <ListadoBoletines />
+}
+
+function ListadoBoletines() {
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
-  const porPagina = 10
   const textoDebounced = useDebounce(busqueda, 350)
 
   useEffect(() => { setPagina(1) }, [textoDebounced])
 
-  const { data: listado, isPending } = useQuery({
+  const { data: listado, isPending, isError, error } = useQuery({
     queryKey: ['boletines', textoDebounced, pagina],
     queryFn: async () => {
       const sp = new URLSearchParams({ page: String(pagina), pageSize: String(porPagina) })
@@ -49,109 +57,175 @@ export default function Boletin() {
     },
     placeholderData: (anterior) => anterior,
   })
+
   const totalPaginas = Math.max(1, Math.ceil((listado?.total ?? 0) / porPagina))
 
-  const { data: detalle } = useQuery({
-    queryKey: ['boletin', numero],
-    queryFn: async () => {
-      const r = await fetch(`/api/v1/boletines/${encodeURIComponent(numero ?? '')}`)
-      if (!r.ok) throw new Error('Boletín inexistente')
-      return r.json() as Promise<BoletinDetalle>
-    },
-    enabled: !!numero,
-  })
-
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
-      <Link to="/" className="text-sm text-ink-faint underline">← Volver</Link>
-      <h1 className="mt-3 text-center font-display text-titulo font-semibold tracking-tight">
-        Boletín Oficial
-      </h1>
-      <p className="mt-1 text-center text-sm text-ink-faint">
-        Cada publicación con las normas que la integran
-      </p>
+    <main className="mx-auto max-w-5xl px-4 py-8">
+      <header className="text-center">
+        <h1 className="font-display text-titulo font-semibold tracking-tight">Boletín Oficial</h1>
+        <p className="mt-1 text-sm text-ink-soft">
+          Cada publicación del boletín con las normas que la integran y su documento original
+        </p>
+      </header>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-[1fr_2fr]">
-        <div className="mb-3">
-          <input
-            type="search"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por número u observaciones"
-            aria-label="Buscar boletines"
-            className="campo w-full"
-          />
-        </div>
-        <ul aria-label="Listado de boletines" className="space-y-1">
-          {(listado?.items ?? []).map((b: BoletinListado) => (
-            <li key={b.id}>
-              <Link to={`/boletines/${encodeURIComponent(b.numero)}`}
-                className={`flex items-baseline justify-between rounded-sm border px-3 py-2.5 transition-colors ${numero === b.numero
-                  ? 'border-acento bg-barro-100/60'
-                  : 'border-line bg-surface hover:border-verde-300 hover:bg-verde-50'}`}>
-                <span className="font-medium">N° {b.numero}</span>
-                <span className="num-tabulares text-xs text-ink-faint">{b.fechaPublicacion}</span>
+      <form className="mx-auto mt-6 max-w-md" onSubmit={(e) => e.preventDefault()}>
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por número u observaciones…"
+          aria-label="Buscar boletines"
+          className="campo w-full"
+        />
+      </form>
 
-              </Link>
-            </li>
-          ))}
-          {isPending && <li className="text-sm text-ink-faint">Cargando…</li>}
-          {listado && listado.items.length === 0 && (
-            <li className="text-sm text-ink-faint">
-              {textoDebounced ? `Sin boletines que coincidan con “${textoDebounced}”.` : 'No hay boletines cargados.'}
-            </li>
-          )}
-        </ul>
-        <nav aria-label="Paginación de boletines" className="mt-3 flex items-center justify-between text-xs text-ink-faint">
-          <button type="button" onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1}
-            className="btn-secundario px-2 py-1 disabled:opacity-40">← Anterior</button>
-          <span>Página {pagina} de {totalPaginas}</span>
-          <button type="button" onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas}
-            className="btn-secundario px-2 py-1 disabled:opacity-40">Siguiente →</button>
-        </nav>
+      <div className="mt-6">
+        {isError && <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>}
+        {isPending && <p aria-live="polite" className="text-sm text-ink-faint">Cargando…</p>}
 
-        <section aria-label="Detalle del boletín">
-          {detalle ? (
-            <div className="panel p-4">
-              <div className="flex flex-wrap items-baseline gap-x-3">
-                <h2 className="text-lg font-bold">Boletín N° {detalle.numero}</h2>
-                <span className="text-sm text-ink-soft">
-                  Publicado el {detalle.fechaPublicacion} · {detalle.normas.length} norma{detalle.normas.length === 1 ? '' : 's'} públicas de {detalle.totalNormas}
-                </span>
-              </div>
-              <div role="tablist" aria-label="Secciones del boletín" className="mt-3 flex gap-4 border-b border-line">
-                <button role="tab" aria-selected={pestana === 'normas'} onClick={() => setPestana('normas')}
-                  className={`-mb-px border-b-2 px-1 pb-2 pt-1 text-sm font-medium ${pestana === 'normas' ? 'border-acento text-acento-texto' : 'border-transparent text-ink-faint hover:text-ink'}`}>
-                  Normas
-                </button>
-                {detalle.tienePdf && (
-                  <button role="tab" aria-selected={pestana === 'pdf'} onClick={() => setPestana('pdf')}
-                    className={`-mb-px border-b-2 px-1 pb-2 pt-1 text-sm font-medium ${pestana === 'pdf' ? 'border-acento text-acento-texto' : 'border-transparent text-ink-faint hover:text-ink'}`}>
-                    PDF original
-                  </button>
-                )}
-              </div>
-              {pestana === 'pdf' && <div className="mt-4"><VisorPdf pdfUrl={`/api/v1/boletines/${encodeURIComponent(numero ?? '')}/pdf`} /></div>}
-              {pestana === 'normas' && (
-              <ul className="mt-3 space-y-2 text-sm">
-                {detalle.normas.map(n => (
-                  <li key={n.codigoNormalizado} className="rounded-sm border border-line p-2">
-                    <Link className="font-medium underline" to={`/normas/${n.codigoNormalizado}`}>
-                      {n.tipo} N° {n.numero}/{n.anio}
+        {listado && (
+          <>
+            {listado.items.length === 0 ? (
+              <p className="panel border-dashed p-8 text-center text-sm text-ink-faint">
+                {textoDebounced ? `Sin boletines que coincidan con “${textoDebounced}”.` : 'Aún no hay boletines cargados.'}
+              </p>
+            ) : (
+              <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {listado.items.map(b => (
+                  <li key={b.id}>
+                    <Link
+                      to={`/boletines/${encodeURIComponent(b.numero)}`}
+                      className="panel block p-4 transition-shadow hover:shadow-md"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-display text-lg font-semibold">N° {b.numero}</span>
+                        {b.tienePdf && <span title="Tiene PDF cargado" aria-label="Tiene PDF" className="text-acento">⎙</span>}
+                      </div>
+                      <p className="num-tabulares mt-1 text-xs text-ink-faint">Publicado el {b.fechaPublicacion}</p>
+                      {b.observaciones && <p className="mt-2 line-clamp-2 text-xs text-ink-soft">{b.observaciones}</p>}
                     </Link>
-                    <p className="text-xs text-ink-faint">sanción {n.fechaSancion} · {n.titulo}</p>
                   </li>
                 ))}
               </ul>
-              )}
-            </div>
-          ) : (
-            <div className="panel border-dashed p-8 text-center text-sm text-ink-faint">
-              {numero ? 'Boletín no encontrado.' : 'Elegí un boletín para ver sus normas.'}
-            </div>
-          )}
-        </section>
+            )}
+
+            <nav aria-label="Paginación de boletines" className="mt-8 flex items-center justify-center gap-3">
+              <button type="button" onClick={() => setPagina(p => Math.max(1, p - 1))}
+                disabled={pagina <= 1} className="btn-secundario px-3 py-1.5 disabled:opacity-40">
+                ← Anterior
+              </button>
+              <span className="num-tabulares text-sm text-ink-soft">
+                Página {pagina} de {totalPaginas}
+              </span>
+              <button type="button" onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                disabled={pagina >= totalPaginas} className="btn-secundario px-3 py-1.5 disabled:opacity-40">
+                Siguiente →
+              </button>
+            </nav>
+          </>
+        )}
       </div>
     </main>
   )
+}
+
+function DetalleBoletin({ numero }: { numero: string }) {
+  const [pestana, setPestana] = useState<'normas' | 'pdf'>('normas')
+
+  const { data: detalle, isError } = useQuery({
+    queryKey: ['boletin', numero],
+    queryFn: async () => {
+      const r = await fetch(`/api/v1/boletines/${encodeURIComponent(numero)}`)
+      if (!r.ok) throw new Error('Boletín inexistente')
+      return r.json() as Promise<BoletinDetalle>
+    },
+    retry: false,
+  })
+
+  useEffect(() => { setPestana('normas') }, [numero])
+
+  if (isError) {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <LinkVolver />
+        <div className="panel mt-4 p-8 text-center">
+          <h1 className="text-lg font-bold text-derogada-texto">Boletín no encontrado</h1>
+          <p className="mt-1 text-sm text-derogada-texto">El boletín N° {numero} no existe.</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (!detalle) {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <LinkVolver />
+        <p aria-live="polite" className="mt-6 text-sm text-ink-faint">Cargando…</p>
+      </main>
+    )
+  }
+
+  return (
+    <main className="mx-auto max-w-5xl px-4 py-8">
+      <LinkVolver />
+
+      <header className="panel mt-4 p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h1 className="font-display text-xl font-bold">Boletín N° {detalle.numero}</h1>
+          <p className="num-tabulares text-sm text-ink-soft">Publicado el {detalle.fechaPublicacion}</p>
+        </div>
+        {detalle.observaciones && <p className="mt-2 text-sm text-ink-soft">{detalle.observaciones}</p>}
+        <p className="mt-2 text-xs text-ink-faint">
+          {detalle.normas.length} normas públicas de {detalle.totalNormas} cargadas
+        </p>
+
+        <div role="tablist" aria-label="Secciones del boletín" className="mt-4 flex gap-5 border-t border-line pt-3">
+          <button role="tab" aria-selected={pestana === 'normas'} onClick={() => setPestana('normas')}
+            className={`border-b-2 px-1 pb-1 text-sm font-medium transition-colors ${pestana === 'normas' ? 'border-acento text-acento-texto' : 'border-transparent text-ink-faint hover:text-ink'}`}>
+            Normas ({detalle.normas.length})
+          </button>
+          {detalle.tienePdf && (
+            <button role="tab" aria-selected={pestana === 'pdf'} onClick={() => setPestana('pdf')}
+              className={`border-b-2 px-1 pb-1 text-sm font-medium transition-colors ${pestana === 'pdf' ? 'border-acento text-acento-texto' : 'border-transparent text-ink-faint hover:text-ink'}`}>
+              PDF original
+            </button>
+          )}
+        </div>
+      </header>
+
+      {pestana === 'normas' && (
+        <section aria-label="Normas del boletín" className="mt-4">
+          {detalle.normas.length === 0 ? (
+            <p className="panel border-dashed p-8 text-center text-sm text-ink-faint">
+              Todavía no hay normas públicas asociadas a este boletín.
+            </p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {detalle.normas.map(n => (
+                <li key={n.codigoNormalizado}>
+                  <Link to={`/normas/${n.codigoNormalizado}`} className="panel block p-4 transition-shadow hover:shadow-md">
+                    <span className="font-semibold">{n.tipo} N° {n.numero}/{n.anio}</span>
+                    <Badge vigencia={n.vigencia} />
+                    <p className="mt-1.5 line-clamp-2 text-sm text-ink-soft">{n.titulo}</p>
+                    <p className="num-tabulares mt-1 text-xs text-ink-faint">sanción {n.fechaSancion}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {pestana === 'pdf' && (
+        <section aria-label="PDF del boletín" className="mt-4">
+          <VisorPdf pdfUrl={`/api/v1/boletines/${encodeURIComponent(numero)}/pdf`} />
+        </section>
+      )}
+    </main>
+  )
+}
+
+function LinkVolver() {
+  return <Link to="/boletin" className="text-sm text-ink-faint underline hover:text-ink">← Todos los boletines</Link>
 }
