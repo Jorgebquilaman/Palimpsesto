@@ -82,6 +82,17 @@ export function LayoutAdmin() {
     normas: grupoNormas,
     catalogos: grupoCatalogos,
   })
+  const [menuOculto, setMenuOculto] = useState(() => {
+    try { return localStorage.getItem('digesto-menu-oculto') === 'si' } catch { return false }
+  })
+
+  function alternarMenu() {
+    setMenuOculto(v => {
+      const nuevo = !v
+      try { localStorage.setItem('digesto-menu-oculto', nuevo ? 'si' : 'no') } catch { }
+      return nuevo
+    })
+  }
 
   useEffect(() => {
     setAbiertas(a => ({ ...a, normas: grupoNormas || a.normas, catalogos: grupoCatalogos || a.catalogos }))
@@ -97,7 +108,12 @@ export function LayoutAdmin() {
 
   return (
     <div className="sin-textura min-h-screen bg-crema-50">
-      <aside className="no-print fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-y-auto bg-verde-950 text-crema-100">
+      <aside className={"no-print fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-y-auto bg-verde-950 text-crema-100 transition-transform duration-200 " + (menuOculto ? "-translate-x-full" : "")}>
+        <button type="button" onClick={alternarMenu}
+          className="absolute right-2 top-3 text-xs text-crema-100/50 hover:text-crema-100"
+          aria-label="Ocultar menú" title="Ocultar menú (máximo espacio)">
+          « ocultar
+        </button>
         <Link to="/" className="mb-2 mt-4 flex flex-col items-start gap-1 px-4">
           <img src="/logo-iupa.svg" alt="IUPA" width={160} height={44}
             className="h-9 w-auto" aria-hidden="true" />
@@ -134,7 +150,14 @@ export function LayoutAdmin() {
         </div>
       </aside>
 
-      <div className="md:pl-60">
+      {menuOculto && (
+        <button type="button" onClick={alternarMenu}
+          className="no-print fixed left-3 top-3 z-30 rounded-md bg-verde-950 px-2.5 py-1.5 text-sm text-crema-100 shadow-md hover:bg-verde-900"
+          aria-label="Mostrar menú" title="Mostrar menú">
+          ☰
+        </button>
+      )}
+      <div className={"md:pl-60 transition-[padding] duration-200 " + (menuOculto ? "md:pl-0" : "")}>
         <div className="no-print flex items-center gap-3 border-b border-line px-4 py-3 md:hidden">
           <Link to="/" className="font-display font-semibold text-verde-900">Digesto IUPA</Link>
           <button onClick={() => { cerrarSesion(); navegar('/admin') }} className="ml-auto text-sm text-ink-soft underline">Salir</button>

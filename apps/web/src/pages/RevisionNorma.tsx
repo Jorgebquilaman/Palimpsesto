@@ -31,6 +31,17 @@ export default function RevisionNorma() {
   const [formulario, setConfigurar] = useState<Partial<NormaAdminDetalle>>({})
   const [fragmentosEdit, setFragmentosEdit] = useState<Record<number, string>>({})
   const [mensaje, setMensaje] = useState('')
+  const [pdfOculto, setPdfOculto] = useState(() => {
+    try { return localStorage.getItem('digesto-pdf-oculto') === 'si' } catch { return false }
+  })
+
+  function alternarPdf() {
+    setPdfOculto(v => {
+      const nuevo = !v
+      try { localStorage.setItem('digesto-pdf-oculto', nuevo ? 'si' : 'no') } catch { }
+      return nuevo
+    })
+  }
   const [confirmado, setConfirmado] = useState(false)
   const [aiModal, setAiModal] = useState<{ fase: 'proceso' | 'exito' | 'error'; resultado?: ResultadoAi; error?: string } | null>(null)
   const [confirmar, setConfirmar] = useState<{ titulo: string; detalle: string; accion: 'limpiar' | 'eliminar' } | null>(null)
@@ -263,15 +274,32 @@ export default function RevisionNorma() {
 
       <div aria-live="polite">{mensaje && <p className="text-sm text-vigente-texto">{mensaje}</p>}</div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={"grid gap-4 " + (pdfOculto ? "lg:grid-cols-[3rem_1fr]" : "lg:grid-cols-2")}>
+        {pdfOculto ? (
+          <section aria-label="PDF original oculto" className="panel flex flex-col items-center gap-3 py-4">
+            <button type="button" onClick={alternarPdf} className="btn-secundario px-2 py-3"
+              title="Volver a mostrar el PDF" aria-label="Volver a mostrar el PDF">
+              <span aria-hidden="true" className="block">»</span>
+              <span className="text-[10px] uppercase tracking-wide">PDF</span>
+            </button>
+          </section>
+        ) : (
         <section aria-label="PDF original" className="panel p-4">
-          <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>PDF original (documento oficial, inmutable)</h2>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>PDF original (documento oficial, inmutable)</h2>
+            <button type="button" onClick={alternarPdf}
+              className="text-xs text-ink-faint underline hover:text-ink"
+              aria-label="Ocultar el PDF" title="Ocultar el PDF (máximo espacio para los datos)">
+              « ocultar
+            </button>
+          </div>
           {norma.archivos.find(a => a.rol === 'original') ? (
             <embed src={pdfUrl} type="application/pdf" className="h-[70vh] w-full rounded-md lg:h-[calc(100vh-13rem)]" aria-label="PDF original de la norma" />
           ) : (
             <p className="text-sm text-ink-faint">Sin PDF cargado.</p>
           )}
         </section>
+        )}
 
         <section aria-label="Metadatos sugeridos" className="space-y-3 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1">
 
