@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { ResultadoAi } from '../api/adminApi'
 import { limpiarNorma, eliminarNorma } from '../api/adminApi'
-import { completarConAi, ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, pedirAiEstado, tokenActual } from '../api/adminApi'
+import { completarConAiStream, ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, pedirAiEstado, tokenActual } from '../api/adminApi'
 import type { NormaAdminDetalle } from '../api/adminApi'
+
+const PASOS_AI = ['preparar', 'renderizar', 'consultar', 'aplicar']
 
 export default function RevisionNorma() {
   const { id = '' } = useParams()
@@ -32,6 +34,7 @@ export default function RevisionNorma() {
   const [confirmado, setConfirmado] = useState(false)
   const [aiModal, setAiModal] = useState<{ fase: 'proceso' | 'exito' | 'error'; resultado?: ResultadoAi; error?: string } | null>(null)
   const [confirmar, setConfirmar] = useState<{ titulo: string; detalle: string; accion: 'limpiar' | 'eliminar' } | null>(null)
+  const [pasosAi, setPasosAi] = useState<{ texto: string; detalle: string | null; estado: 'pendiente' | 'haciendo' | 'hecho' | 'error' }[]>([])
 
   useEffect(() => {
     if (normaa && Object.keys(formulario).length === 0) {
@@ -128,10 +131,33 @@ export default function RevisionNorma() {
   })
 
   const completarAi = useMutation({
-    mutationFn: () => completarConAi(id),
+    mutationFn: () => {
+      setPasosAi([
+        { texto: 'Tomar el PDF original', detalle: null, estado: 'pendiente' },
+        { texto: 'Renderizar las páginas como imágenes', detalle: null, estado: 'pendiente' },
+        { texto: 'Consultar a DeepSeek (lee el documento)', detalle: null, estado: 'pendiente' },
+        { texto: 'Aplicar los datos deducidos', detalle: null, estado: 'pendiente' },
+      ])
+      return completarConAiStream(id, (evento: { etapa: string; detalle: string | null }) => {
+        setPasosAi(prev => {
+          const indice = PASOS_AI.indexOf(evento.etapa)
+          if (indice < 0) return prev
+          return prev.map((paso, i) => ({
+            ...paso,
+            estado: i < indice ? 'hecho' : (i === indice ? 'haciendo' : 'pendiente'),
+            detalle: i === indice ? (evento.detalle ?? paso.detalle) : paso.detalle,
+          }))
+        })
+      })
+    },
     onMutate: () => setAiModal({ fase: 'proceso' }),
-    onSuccess: (r) => {
-      setAiModal({ fase: 'exito', resultado: r })
+    onSuccess: (final) => {
+      setPasosAi(prev => prev.map(p => (p.estado === 'haciendo' || p.estado === 'pendiente') ? { ...p, estado: final.estado === 'exito' ? 'hecho' : 'error', detalle: p.estado === 'haciendo' ? p.detalle : p.detalle } : p))
+      if (final.estado === 'exito') {
+        setAiModal({ fase: 'exito', resultado: { camposAplicados: final.camposAplicados ?? [], relacionesCreadas: final.relacionesCreadas ?? [], advertencias: final.advertencias ?? [] } })
+      } else {
+        setAiModal({ fase: 'error', error: final.detalle ?? 'Sin detalle' })
+      }
       setConfigurar({})
       setFragmentosEdit({})
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
@@ -431,11 +457,21 @@ export default function RevisionNorma() {
                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-acento border-t-transparent" aria-hidden="true" />
                   Completando con AI…
                 </h2>
-                <ol className="space-y-2 text-sm text-ink-soft">
-                  <li>1. Tomamos el PDF original firmado de la norma</li>
-                  <li>2. Se renderizan las páginas como imágenes</li>
-                  <li>3. DeepSeek lee el documento directamente (sin OCR)</li>
-                  <li>4. Se aplican los datos deducidos y las relaciones</li>
+                <ol className="space-y-2 text-sm">
+                  {pasosAi.map((paso, i) => (
+                    <li key={i} className={
+                      paso.estado === 'hecho' ? 'text-ink-faint'
+                        : paso.estado === 'haciendo' ? 'font-bold text-ink'
+                        : paso.estado === 'error' ? 'text-derogada-texto font-bold'
+                        : 'text-ink-faint/70'
+                    }>
+                      <span aria-hidden="true" className="mr-1">
+                        {paso.estado === 'hecho' ? '✓' : paso.estado === 'error' ? '✗' : paso.estado === 'haciendo' ? '▸' : '·'}
+                      </span>
+                      {paso.texto}
+                      {paso.estado === 'haciendo' && paso.detalle && <span className="ml-1 font-normal text-ink-soft">— {paso.detalle}</span>}
+                    </li>
+                  ))}
                 </ol>
                 <p className="mt-3 text-xs text-ink-faint">Puede tardar hasta un minuto. No cierres esta ventana.</p>
               </>

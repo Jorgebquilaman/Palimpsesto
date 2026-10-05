@@ -325,3 +325,13 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 **`POST /admin/normas/{id}/limpiar`**: pone en blanco el contenido (título, resumen, palabras clave, expediente, fecha de sanción) manteniendo identidad (tipo/órgano/número/año). `FechaSancion` usa `DateOnly.MinValue` como sentinel "sin fecha" (el dominio la tiene no-nullable); tanto el detalle admin como el GET público la serializan como null cuando vale MinValue.
 
 **`DELETE /admin/normas/{id}`**: elimina la norma con fragmentos, relaciones (ambas direcciones), archivos (filas y archivos físicos en el volumen) y registra auditoría. Botón "Eliminar norma" en backoffice con confirmación previa.
+
+**Corrección limpiar**: la primera versión solo borraba contenido y el front NO refrescaba el formulario (el estado `formulario` se inicializa una sola vez). Ahora `limpiar` borra TODO lo deducible (número→0, sufijo, título, resumen, palabras clave, expediente, fecha sanción, vigencia→vigente, y TODOS los fragmentos) y el front resetea `formulario`/`fragmentosEdit` tras limpiar y tras la AI para reflejar el estado del servidor.
+
+## Progreso en vivo del "Completar con AI"
+
+**`POST /admin/ai/normas/{id}/completar-stream`**: NDJSON (una línea JSON por evento). `IAiNormaService.CompletarNormaAsync` acepta un callback opcional `Func<EventoProgresoAi, Task>` y emite etapas reales: preparar → renderizar → consultar → aplicar; línea final con `{estado: exito|error, ...}`. El front lo lee con `fetch` + `response.body.getReader()` (EventSource no puede mandar el header Authorization del JWT).
+
+## Sin OCR en el pipeline
+
+**Decisión del usuario**: los PDFs sin texto nativo (escaneos/imágenes) **no se procesan con OCR** — el pipeline los rechaza con mensaje claro y quedan para "Completar con AI" (que lee el PDF original con el modelo de visión) + corrección manual. Se eliminó la etapa OCR y `ProcesarOcrAsync` de `PipelineIngesta` (la clase `OcrmypdfServicio` queda en el repo pero sin uso en el flujo). `TextoOrigen` ya no pasa a `Ocr`.

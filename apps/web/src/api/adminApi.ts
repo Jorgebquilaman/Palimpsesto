@@ -203,3 +203,59 @@ export function limpiarNorma(normaId: string): Promise<unknown> {
 export function eliminarNorma(normaId: string): Promise<unknown> {
   return pedirAdmin(`/admin/normas/${normaId}`, { method: 'DELETE' })
 }
+
+export interface EventoProgresoAi {
+  etapa: string
+  detalle: string | null
+}
+
+export interface FinalProgresoAi {
+  estado: 'exito' | 'error'
+  camposAplicados?: string[]
+  relacionesCreadas?: { codigoDestino: string; tipoRelacion: string }[]
+  advertencias?: string[]
+  detalle?: string
+}
+
+export function completarConAiStream(
+  normaId: string,
+  onEvento: (evento: EventoProgresoAi) => void,
+): Promise<FinalProgresoAi> {
+  return new Promise(async (resolver, rechazar) => {
+    try {
+      const respuesta = await fetch(`/api/v1/admin/ai/normas/${normaId}/completar-stream`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenActual() ?? ''}` },
+      })
+      if (!respuesta.ok || !respuesta.body) {
+        rechazar(new Error(`Error ${respuesta.status}`))
+        return
+      }
+      const lector = respuesta.body.getReader()
+      const decodificador = new TextDecoder()
+      let pendiente = ''
+      let final: FinalProgresoAi | null = null
+      for (;;) {
+        const { done, value } = await lector.read()
+        if (done) break
+        pendiente += decodificador.decode(value, { stream: true })
+        const lineas = pendiente.split('\n')
+        pendiente = lineas.pop() ?? ''
+        for (const linea of lineas) {
+          const limpio = linea.trim()
+          if (!limpio) continue
+          const dato = JSON.parse(limpio)
+          if (dato.estado) {
+            final = dato as FinalProgresoAi
+          } else if (dato.etapa) {
+            onEvento(dato as EventoProgresoAi)
+          }
+        }
+      }
+      if (final) resolver(final)
+      else rechazar(new Error('La AI terminó sin responder'))
+    } catch (e) {
+      rechazar(e as Error)
+    }
+  })
+}

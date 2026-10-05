@@ -64,7 +64,7 @@ public class AiAdminController : ControllerBase
     [HttpPost("normas/{id:guid}/completar")]
     public async Task<IActionResult> CompletarNorma(Guid id, CancellationToken ct)
     {
-        var resultado = await _aiNorma.CompletarNormaAsync(id, ct);
+        var resultado = await _aiNorma.CompletarNormaAsync(id, reportar: null, ct);
         if (!resultado.Ok)
         {
             return Problem(statusCode: 400, detail: resultado.Advertencias.FirstOrDefault() ?? "No se pudo completar");
@@ -76,6 +76,27 @@ public class AiAdminController : ControllerBase
             resultado.RelacionesCreadas,
             resultado.Advertencias,
         });
+    }
+
+    [HttpPost("normas/{id:guid}/completar-stream")]
+    public async Task CompletarNormaConProgreso(Guid id, CancellationToken ct)
+    {
+        Response.ContentType = "application/x-ndjson";
+        Response.Headers.CacheControl = "no-cache";
+        var opcionesJson = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+
+        var resultado = await _aiNorma.CompletarNormaAsync(id, async evento =>
+        {
+            await Response.WriteAsync(
+                System.Text.Json.JsonSerializer.Serialize(new { evento.Etapa, evento.Detalle }, opcionesJson) + "\n", ct);
+            await Response.Body.FlushAsync(ct);
+        }, ct);
+
+        var final = resultado.Ok
+            ? (object)new { estado = "exito", resultado.CamposAplicados, resultado.RelacionesCreadas, resultado.Advertencias }
+            : (object)new { estado = "error", detalle = resultado.Advertencias.FirstOrDefault() ?? "No se pudo completar" };
+
+        await Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(final, opcionesJson) + "\n", ct);
     }
 }
 

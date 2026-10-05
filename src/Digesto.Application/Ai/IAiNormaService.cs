@@ -29,7 +29,9 @@ public record ResultadoCompletarAi(
         new(false, new DatosAi(null, null, null, null, null, null, null, null, null, null, null, []), [], [], [error]);
 }
 
+public record EventoProgresoAi(string Etapa, string? Detalle);
+
 public interface IAiNormaService
 {
-    Task<ResultadoCompletarAi> CompletarNormaAsync(Guid normaId, CancellationToken ct = default);
+    Task<ResultadoCompletarAi> CompletarNormaAsync(Guid normaId, Func<EventoProgresoAi, Task>? reportar = null, CancellationToken ct = default);
 }

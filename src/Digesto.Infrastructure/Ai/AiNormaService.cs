@@ -30,8 +30,13 @@ public partial class AiNormaService : IAiNormaService
         _logger = logger;
     }
 
-    public async Task<ResultadoCompletarAi> CompletarNormaAsync(Guid normaId, CancellationToken ct = default)
+    public async Task<ResultadoCompletarAi> CompletarNormaAsync(Guid normaId, Func<EventoProgresoAi, Task>? reportar = null, CancellationToken ct = default)
     {
+        async Task Reportar(string etapa, string? detalle = null)
+        {
+            if (reportar is not null) await reportar(new EventoProgresoAi(etapa, detalle));
+        }
+
         var norma = await _db.Normas
             .Include(n => n.TipoNorma)
             .Include(n => n.OrganoEmisor)
@@ -43,6 +48,8 @@ public partial class AiNormaService : IAiNormaService
             return ResultadoCompletarAi.Falla("Norma no encontrada");
         }
 
+        await Reportar("preparar", "Buscando el PDF original de la norma");
+
         List<byte[]> imagenes = [];
         var texto = string.Join("\n\n", norma.Fragmentos.Select(f => f.Texto));
 
@@ -51,10 +58,12 @@ public partial class AiNormaService : IAiNormaService
             .FirstOrDefaultAsync(ct);
         if (original is not null)
         {
+            await Reportar("renderizar", "Renderizando las páginas del PDF como imágenes");
             var render = await RenderizarPaginasAsync(original.StorageKey, ct);
             if (render.Count > 0)
             {
                 imagenes = render;
+                await Reportar("consultar", $"PDF listo: {imagenes.Count} páginas como imágenes. Consultando a DeepSeek…");
             }
         }
 
@@ -115,9 +124,13 @@ public partial class AiNormaService : IAiNormaService
         string crudo;
         try
         {
+            await Reportar("consultar", imagenes.Count > 0
+                ? "DeepSeek está leyendo el documento original"
+                : "DeepSeek está leyendo el texto extraído");
             crudo = imagenes.Count > 0
                 ? await _proveedor.CompletarConImagenesAsync(sistema, usuario, imagenes, TimeSpan.FromSeconds(300), ct)
                 : await _proveedor.CompletarAsync(sistema, usuario, TimeSpan.FromSeconds(150), ct);
+            await Reportar("aplicar", "Aplicando los datos deducidos a la norma");
         }
         catch (InvalidOperationException ex)
         {
