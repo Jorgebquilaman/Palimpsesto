@@ -32,3 +32,26 @@ Para separar endpoints de handlers de casos de uso desde el hito 1 (subida de PD
 
 - Versión exacta de `Npgsql.EntityFrameworkCore.PostgreSQL` vs .NET 8: fijada en 8.0.x cuando se agregue el primer DbContext (hito 1).
 - Testcontainers version y estrategia de imágenes para CI (hito 1).
+
+## Hito 1 — Modelo y catálogos
+
+**2026-10-04 — Identity tables mapeadas a tablas snake_case propias (`usuarios`, `roles`, etc.).**
+`IdentityDbContext.OnModelCreating` sobreescribe `ToTable` si se invoca después del base, así que las renombres se aplican tras `base.OnModelCreating(...)`. Las columnas internas de Identity quedan snake_case vía `UseSnakeCaseNamingConvention()` (EFCore.NamingConventions), que convierte cualquier columna no configurada explícitamente.
+
+**2026-10-04 — `UsuarioApp` en Infrastructure, no en Domain.**
+`IdentityUser` arrastra dependencias de ASP.NET Identity; Domain debe ser puro. Compromiso aceptado: la entidad de usuario no es parte del dominio digesto sino de la plataforma.
+
+**2026-10-04 — `f_unir(text[])` inmutable para `tsv_meta`.**
+`array_to_string` es STABLE y PostgreSQL rechaza expresiones no-inmutables en columnas generadas. Se envolvió en una función SQL IMMUTABLE. Mismo patrón estará disponible si el generador de `tsv_meta` crece.
+
+**2026-10-04 — Migración + seed automáticos al arrancar la API.**
+Un hosted-block en `Program.cs` hace `MigrateAsync()` + `SeedDigesto` antes de servir tráfico. El requisito "docker compose up en máquina limpia" lo pide; alternativo (migrador como entrypoint separado) se descartó por simplificar el flujo de desarrollo. En producción se puede desacoplar con la misma lógica en un job.
+
+**2026-10-04 — Configuración de JWT centralizada en `TokenOptions` (IOptions).**
+Program.cs resuelve config/env una sola vez con un default solo-dev; `TokenGenerator` valida largo ≥ 32. Evita divergencia entre el emisor y el validador del token.
+
+**2026-10-04 — Claims estándar (`ClaimTypes.NameIdentifier`, `ClaimTypes.Name`).**
+Los claim mappings de JwtBearer transforman `sub`/`unique_name`; emitir directamente los tipos largos evita sorpresas al resolver `User.FindFirstValue(...)`.
+
+**2026-10-04 — Testcontainers en cada clase de fixture.**
+`MigracionYBusquedaFixture` levanta un postgres:16-alpine por corrida de clase (poco más de 1 s). Compartir contenedor entre clases complica el orden de tests; el costo es bajo para el volumen esperado.
