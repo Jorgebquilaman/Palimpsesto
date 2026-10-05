@@ -123,6 +123,14 @@ export default function RevisionNorma() {
 
   const norma = normaa!
 
+  const { data: relaciones } = useQuery({
+    queryKey: ['admin-norma-relaciones', id, norma.codigoNormalizado],
+    queryFn: () => pedirAdmin<{
+      origen: { id: number; tipo: string; detalle: string | null; normaDestino: { codigoNormalizado: string; titulo: string } }[]
+      destino: { id: number; tipo: string; detalle: string | null; normaOrigen: { codigoNormalizado: string; titulo: string } }[]
+    }>(`/normas/${encodeURIComponent(norma.codigoNormalizado)}/relaciones`),
+  })
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -234,6 +242,35 @@ export default function RevisionNorma() {
             </button>
           </form>
 
+          <section aria-label="Relaciones" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Relaciones</h2>
+            <FormularioRelacion normaId={norma.id} onQueCambio={(msg) => setMensaje(msg)} clienteWebsocketRefresco={cliente} />
+            {relaciones && (relaciones.origen.length > 0 || relaciones.destino.length > 0) ? (
+              <ul className="mt-3 space-y-1 text-sm">
+                {relaciones.origen.map(r => (
+                  <li key={`o${r.id}`}>
+                    <strong>{r.tipo}</strong> → {r.normaDestino.codigoNormalizado}
+                    <button type="button" className="ml-2 text-xs underline text-gray-500"
+                      onClick={() => pedirAdmin(`/admin/relaciones/${r.id}`, { method: 'DELETE' }).then(() => cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] }))}>
+                      quitar
+                    </button>
+                  </li>
+                ))}
+                {relaciones.destino.map(r => (
+                  <li key={`d${r.id}`}>
+                    <strong>{r.tipo}</strong> ← {r.normaOrigen.codigoNormalizado}
+                    <button type="button" className="ml-2 text-xs underline text-gray-500"
+                      onClick={() => pedirAdmin(`/admin/relaciones/${r.id}`, { method: 'DELETE' }).then(() => cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] }))}>
+                      quitar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">Sin relaciones registradas.</p>
+            )}
+          </section>
+
           <section aria-label="Fragmentos de texto" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Fragmentos (corrección manual)</h2>
             <div className="max-h-[45vh] space-y-3 overflow-auto">
@@ -270,3 +307,65 @@ export default function RevisionNorma() {
   )
 }
 
+
+function FormularioRelacion({
+  normaId,
+  onQueCambio,
+  clienteWebsocketRefresco,
+}: {
+  normaId: string
+  onQueCambio: (m: string) => void
+  clienteWebsocketRefresco: ReturnType<typeof useQueryClient>
+}) {
+  const [codigoDestino, setCodigoDestino] = useState('')
+  const [tipo, setTipo] = useState('modifica')
+
+  return (
+    <form
+      className="flex flex-wrap gap-2"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        try {
+          const r = await fetch(`/api/v1/normas/${encodeURIComponent(codigoDestino)}`)
+          if (!r.ok) {
+            onQueCambio('Norma destino no encontrada')
+            return
+          }
+          const d = await r.json()
+          const tipos: Record<string, number> = {
+            modifica: 1, deroga: 2, derogaparcialmente: 3, reglamenta: 4,
+            complementa: 5, ratifica: 6, dejainsineffecto: 7,
+          }
+          await pedirAdmin(`/admin/normas/${normaId}/relaciones`, {
+            method: 'POST',
+            body: JSON.stringify({ normaDestinoId: d.id, tipo: tipos[tipo] }),
+          })
+          onQueCambio('Relación agregada')
+          void clienteWebsocketRefresco.invalidateQueries({ queryKey: ['admin-norma-relaciones', normaId] })
+        } catch (err) {
+          onQueCambio(`Error: ${(err as Error).message}`)
+        }
+      }}
+    >
+      <input
+        placeholder="código destino (ev. RES-CS-2024-0123)"
+        value={codigoDestino}
+        onChange={(e) => setCodigoDestino(e.target.value)}
+        className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800"
+      />
+      <select value={tipo} onChange={(e) => setTipo(e.target.value)}
+        className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+        <option value="modifica">modifica</option>
+        <option value="deroga">deroga</option>
+        <option value="derogaparcialmente">deroga parcialmente</option>
+        <option value="reglamenta">reglamenta</option>
+        <option value="complementa">complementa</option>
+        <option value="ratifica">ratifica</option>
+        <option value="dejainsineffecto">deja sin efecto</option>
+      </select>
+      <button type="submit" className="rounded bg-blue-700 px-3 py-1 text-sm text-white hover:bg-blue-800">
+        Agregar
+      </button>
+    </form>
+  )
+}

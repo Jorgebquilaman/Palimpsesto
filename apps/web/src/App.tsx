@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Busqueda from './pages/Busqueda'
 import Norma from './pages/Norma'
+import Boletin from './pages/Boletin'
 import Admin, { LayoutAdmin } from './pages/Admin'
 import NormasAdmin from './pages/NormasAdmin'
 import RevisionNorma from './pages/RevisionNorma'
@@ -14,6 +15,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Busqueda />} />
         <Route path="/normas/:codigo" element={<Norma />} />
+        <Route path="/boletin" element={<Boletin />} />
         <Route path="/admin" element={<Admin />}>
           <Route index element={<Navigate to="/admin/normas" replace />} />
           <Route element={<LayoutAdmin />}>

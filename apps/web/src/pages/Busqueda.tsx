@@ -110,7 +110,8 @@ export default function Busqueda() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Digesto Normativo IUPA</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Búsqueda de normas institucionales. El PDF firmado es el documento oficial.
+          Búsqueda de normas institucionales. El PDF firmado es el documento oficial.{' '}
+          <Link to="/boletin" className="underline">Boletín Oficial →</Link>
         </p>
       </header>
 

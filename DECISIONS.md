@@ -143,3 +143,14 @@ Red `backend` marcadamente `internal: true` (sin salida a Internet), usuario no-
 
 **2026-10-04 — Importador masivo un solo CSV + archivos en multipart.**
 `POST /admin/importar` con `csv` + `archivos[]`. Parso RFC4180 básico (comillas dobles escapadas). Columnas: `archivo,tipo,numero,anio,sufijo,titulo,fecha_sancion,fecha_publicacion,visibilidad,vigencia,resumen,expediente,palabras_clave` (`;` separa palabras clave). Cada fila: norma en borrador (a revisión como el resto; nada se publica sin confirmación humana) + `proceso_ingesta` pendiente para que el worker genere texto/fragmentos con los metadatos RESPECTADOS (no sobrescritos por las heurísticas cuando el CSV trae datos). `ANALYZE` corre al final para recomputar estadísticas del planificador.
+
+## Hito 7 — Relaciones, vigencia y boletín
+
+**2026-10-04 — El listado del boletín respeta visibilidad y estado.**
+`GET /boletines/{numero}` detalle cuenta TODAS las normas del boletín pero lista solo las públicas (publicada/archivada): el editorial puede ver cuántas reservadas hay sin exponerlas. Test de no fuga para ese endpoint.
+
+**2026-10-04 — Relaciones: tripla única (origen, destino, tipo).**
+El índice único de la migración inicial mata el duplicado a nivel SQL. Añadir la misma relación devuelve 409; distintas relaciones (modifica + deroga entre las mismas pares) sí son válidas.
+
+**2026-10-04 — Eliminar boletín con normas en uso rechaza (409) en vez de desasociar en cascada.**
+Evita perder el agrupamiento histórico por accidente.
