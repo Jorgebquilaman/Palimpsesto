@@ -117,6 +117,7 @@ export function construirConsultaBusqueda(parametros: {
   vigencia?: string
   orden?: string
   page?: number
+  pageSize?: number
 }): string {
   const sp = new URLSearchParams()
   for (const [clave, valor] of Object.entries(parametros)) {

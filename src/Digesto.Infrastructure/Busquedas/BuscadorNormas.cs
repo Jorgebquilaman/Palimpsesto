@@ -230,7 +230,7 @@ public class BuscadorNormas : IBuscadorNormas
     private (string With, string Where, string RankingJoin, DynamicParameters Parametros) ConstruirNucleo(FiltrosBusqueda filtros)
     {
         var p = new DynamicParameters();
-        p.Add("@limit", Math.Clamp(filtros.PageSize, 1, 50));
+        p.Add("@limit", Math.Clamp(filtros.PageSize, 1, 100));
         p.Add("@offset", Math.Max(0, (filtros.Page - 1) * filtros.PageSize));
 
         var where = """

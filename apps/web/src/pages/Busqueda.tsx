@@ -45,6 +45,7 @@ export default function Busqueda() {
   const vigencia = parametros.get('vigencia') ?? ''
   const orden = parametros.get('orden') ?? 'relevancia'
   const page = Number(parametros.get('page') ?? '1')
+  const tamanoPagina = Number(parametros.get('pageSize') ?? '20')
 
   const [textoBusqueda, setTextoBusqueda] = useState(q)
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
@@ -85,8 +86,8 @@ export default function Busqueda() {
   })
 
   const consulta = useMemo(
-    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page }),
-    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page],
+    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page, pageSize: tamanoPagina }),
+    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page, tamanoPagina],
   )
 
   const { data: resultados, isPending, isError, error } = useQuery({
@@ -384,12 +385,21 @@ export default function Busqueda() {
                       ))}
                     </ul>
 
-                    <Paginador
-                      page={page}
-                      total={resultados.total}
-                      pageSize={20}
-                      onCambiar={p => actualizar({ page: p })}
-                    />
+                    <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                      <Paginador
+                        page={page}
+                        total={resultados.total}
+                        pageSize={tamanoPagina}
+                        onCambiar={p => actualizar({ page: p })}
+                      />
+                      <label className="flex items-center gap-2 text-xs text-ink-faint">
+                        por página
+                        <select value={String(tamanoPagina)} onChange={(e) => actualizar({ pageSize: e.target.value, page: 1 })}
+                          className="campo py-1 text-xs" aria-label="Resultados por página">
+                          {[10, 50, 100].map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </label>
+                    </div>
                   </>
                 )}
               </>
