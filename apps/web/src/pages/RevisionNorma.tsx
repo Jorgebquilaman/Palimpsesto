@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { ResultadoAi } from '../api/adminApi'
-import { limpiarNorma, eliminarNorma } from '../api/adminApi'
+import { agregarFragmento, limpiarNorma, eliminarNorma } from '../api/adminApi'
 import { completarConAiStream, ETIQUETAS_ESTADO, ETIQUETAS_VISIBILIDAD, ETIQUETAS_VIGENCIA, pedirAdmin, pedirAiEstado, tokenActual } from '../api/adminApi'
 import type { NormaAdminDetalle } from '../api/adminApi'
 
@@ -46,6 +46,8 @@ export default function RevisionNorma() {
   const [aiModal, setAiModal] = useState<{ fase: 'proceso' | 'exito' | 'error'; resultado?: ResultadoAi; error?: string } | null>(null)
   const [confirmar, setConfirmar] = useState<{ titulo: string; detalle: string; accion: 'limpiar' | 'eliminar' } | null>(null)
   const [pasosAi, setPasosAi] = useState<{ texto: string; detalle: string | null; estado: 'pendiente' | 'haciendo' | 'hecho' | 'error' }[]>([])
+  const [textoNuevo, setTextoNuevo] = useState('')
+  const [tituloNuevo, setTituloNuevo] = useState('')
 
   useEffect(() => {
     if (normaa && Object.keys(formulario).length === 0) {
@@ -108,6 +110,17 @@ export default function RevisionNorma() {
     onSuccess: () => {
       setMensaje('Cambios guardados')
       setConfirmado(true)
+      void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
+    },
+    onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
+  })
+
+  const agregarFragmentoMut = useMutation({
+    mutationFn: () => agregarFragmento(id, textoNuevo, tituloNuevo || undefined),
+    onSuccess: () => {
+      setTextoNuevo('')
+      setTituloNuevo('')
+      setMensaje('Fragmento agregado')
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
     },
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
@@ -406,7 +419,7 @@ export default function RevisionNorma() {
           </section>
 
           <section aria-label="Fragmentos de texto" className="panel p-4">
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Fragmentos (corrección manual)</h2>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Fragmentos (corrección y carga manual)</h2>
             <div className="max-h-[45vh] space-y-3 overflow-auto">
               {norma.fragmentos.map(f => (
                 <label key={f.orden} className="block text-sm">
@@ -421,6 +434,38 @@ export default function RevisionNorma() {
                   />
                 </label>
               ))}
+            </div>
+            <div className="mt-4 border-t border-line pt-3">
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-medium text-ink-faint">
+                  {norma.fragmentos.length === 0
+                    ? 'El documento todavía no tiene texto: pegalo acá (o usá "Completar con AI")'
+                    : 'Agregar otro bloque de texto'}
+                </span>
+                {norma.fragmentos.length > 0 && (
+                  <input
+                    value={tituloNuevo}
+                    onChange={(e) => setTituloNuevo(e.target.value)}
+                    placeholder="título opcional (p. ej. Artículo 5)"
+                    className="mb-2 campo"
+                  />
+                )}
+                <textarea
+                  value={textoNuevo}
+                  onChange={(e) => setTextoNuevo(e.target.value)}
+                  rows={5}
+                  placeholder="Pegá o escribí el texto de esta parte del documento…"
+                  className="campo"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={textoNuevo.trim().length === 0 || agregarFragmentoMut.isPending}
+                onClick={() => agregarFragmentoMut.mutate()}
+                className="mt-2 btn-primario"
+              >
+                {agregarFragmentoMut.isPending ? 'Agregando…' : 'Agregar fragmento'}
+              </button>
             </div>
           </section>
 

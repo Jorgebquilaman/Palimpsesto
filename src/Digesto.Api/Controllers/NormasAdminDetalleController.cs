@@ -226,6 +226,52 @@ public class NormasAdminDetalleController : ControllerBase
         }
     }
 
+    [HttpPost("{id:guid}/fragmentos")]
+    public async Task<IActionResult> AgregarFragmento(Guid id, [FromBody] FragmentoNuevoRequest request, CancellationToken ct)
+    {
+        var norma = await _db.Normas.FindAsync(new object[] { id }, ct);
+        if (norma is null)
+        {
+            return Problem(statusCode: 404, detail: "Norma no encontrada");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Texto))
+        {
+            return Problem(statusCode: 400, detail: "El texto del fragmento es obligatorio");
+        }
+
+        var ultimo = await _db.NormasFragmentos
+            .Where(f => f.NormaId == id)
+            .OrderByDescending(f => f.Orden)
+            .Select(f => (int?)f.Orden)
+            .FirstOrDefaultAsync(ct);
+
+        _db.NormasFragmentos.Add(new NormaFragmento
+        {
+            NormaId = id,
+            Orden = (ultimo ?? 0) + 1,
+            Tipo = TipoFragmento.Pagina,
+            Etiqueta = string.IsNullOrWhiteSpace(request.Etiqueta) ? null : request.Etiqueta[..Math.Min(100, request.Etiqueta.Length)],
+            Texto = request.Texto,
+        });
+
+        if (norma.EstadoPublicacion is EstadoPublicacion.Borrador or EstadoPublicacion.Procesando)
+        {
+            norma.EstadoPublicacion = EstadoPublicacion.EnRevision;
+        }
+
+        _db.Auditorias.Add(new Auditoria
+        {
+            Usuario = User.Identity?.Name ?? "desconocido",
+            Entidad = "norma_fragmento",
+            EntidadId = norma.Id.ToString(),
+            Accion = "agregar_texto",
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { norma.Id });
+    }
+
     [HttpPut("{id:guid}/fragmentos")]
     public async Task<IActionResult> ActualizarFragmentos(Guid id, [FromBody] List<FragmentoEditado> fragmentos, CancellationToken ct)
     {
@@ -420,6 +466,7 @@ public record ActualizarNormaRequest(
     Vigencia? Vigencia);
 
 public record FragmentoEditado(int Orden, string? Etiqueta, string Texto, string? Html);
+public record FragmentoNuevoRequest(string Texto, string? Etiqueta);
 
 internal static class EstadoSnakeFmt
 {

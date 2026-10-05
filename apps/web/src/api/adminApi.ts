@@ -283,3 +283,10 @@ export async function subirPdfBoletin(id: number, archivo: File): Promise<unknow
   }
   return await respuesta.json()
 }
+
+export function agregarFragmento(normaId: string, texto: string, etiqueta?: string): Promise<unknown> {
+  return pedirAdmin(`/admin/normas/${normaId}/fragmentos`, {
+    method: 'POST',
+    body: JSON.stringify({ texto, etiqueta: etiqueta?.trim() || null }),
+  })
+}

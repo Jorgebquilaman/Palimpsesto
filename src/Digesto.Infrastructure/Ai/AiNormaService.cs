@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Digesto.Application.Ai;
+using Digesto.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -156,6 +157,11 @@ public partial class AiNormaService : IAiNormaService
         var advertencias = new List<string>();
         var aplicados = await AplicarDatosAsync(norma, datos, advertencias, ct);
         var relacionesCreadas = await CrearRelacionesAsync(norma, datos, ct);
+
+        if (norma.EstadoPublicacion is EstadoPublicacion.Borrador or EstadoPublicacion.Procesando)
+        {
+            norma.EstadoPublicacion = EstadoPublicacion.EnRevision;
+        }
 
         norma.ActualizadoEn = DateTime.UtcNow;
         norma.ActualizadoPor = "ai";

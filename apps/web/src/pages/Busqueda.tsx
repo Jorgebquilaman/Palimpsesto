@@ -407,8 +407,18 @@ export default function Busqueda() {
         </div>
       </main>
 
-      <footer className="no-print bg-verde-950 px-4 py-12 text-crema-100">
-        <div className="mx-auto max-w-4xl">
+      <footer className="no-print relative overflow-hidden bg-verde-950 px-4 py-12 text-crema-100">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.12] mix-blend-screen"
+          style={{
+            backgroundImage: 'url(/firma-iupa.jpeg)',
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            filter: 'saturate(0.6) brightness(0.9)',
+          }}
+        />
+        <div className="relative mx-auto max-w-4xl">
           <h2 className="text-center font-display text-titulo font-semibold tracking-tight">
             El Digesto en números
           </h2>
