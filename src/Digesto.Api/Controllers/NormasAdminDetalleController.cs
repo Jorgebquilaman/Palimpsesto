@@ -127,7 +127,10 @@ public class NormasAdminDetalleController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Actualizar(Guid id, [FromBody] ActualizarNormaRequest request, CancellationToken ct)
     {
-        var norma = await _db.Normas.FindAsync(new object[] { id }, ct);
+        var norma = await _db.Normas
+            .Include(n => n.TipoNorma)
+            .Include(n => n.OrganoEmisor)
+            .FirstOrDefaultAsync(n => n.Id == id, ct);
         if (norma is null)
         {
             return Problem(statusCode: 404, detail: "Norma no encontrada");
@@ -159,6 +162,23 @@ public class NormasAdminDetalleController : ControllerBase
         if (request.Expediente is not null) norma.Expediente = request.Expediente[..Math.Min(50, request.Expediente.Length)];
         if (request.Visibilidad is { } vis) norma.Visibilidad = vis;
         if (request.Vigencia is { } vig) norma.Vigencia = vig;
+
+        if (norma.Numero > 0)
+        {
+            var codigo = Domain.Reglas.CodigoNormalizador.Armar(
+                norma.TipoNorma.Codigo, norma.OrganoEmisor.Codigo, norma.Anio, norma.Numero);
+            if (codigo != norma.CodigoNormalizado)
+            {
+                var otraMisma = await _db.Normas.AnyAsync(x =>
+                    x.Id != norma.Id && x.CodigoNormalizado == codigo, ct);
+                if (otraMisma)
+                {
+                    return Problem(statusCode: 409,
+                        detail: $"Ya existe una norma con el código {codigo}; revisá número/año/tipo/órgano (¿duplicado?)");
+                }
+                norma.CodigoNormalizado = codigo;
+            }
+        }
 
         norma.ActualizadoEn = DateTime.UtcNow;
         norma.ActualizadoPor = User.Identity?.Name ?? "desconocido";

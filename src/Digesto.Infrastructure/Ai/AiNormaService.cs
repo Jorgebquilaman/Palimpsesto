@@ -158,6 +158,12 @@ public partial class AiNormaService : IAiNormaService
         var aplicados = await AplicarDatosAsync(norma, datos, advertencias, ct);
         var relacionesCreadas = await CrearRelacionesAsync(norma, datos, ct);
 
+        if (norma.Numero > 0)
+        {
+            norma.CodigoNormalizado = Domain.Reglas.CodigoNormalizador.Armar(
+                norma.TipoNorma.Codigo, norma.OrganoEmisor.Codigo, norma.Anio, norma.Numero);
+        }
+
         if (norma.EstadoPublicacion is EstadoPublicacion.Borrador or EstadoPublicacion.Procesando)
         {
             norma.EstadoPublicacion = EstadoPublicacion.EnRevision;

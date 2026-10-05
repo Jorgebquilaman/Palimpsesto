@@ -98,7 +98,10 @@ public class ImportacionController : ControllerBase
                     Numero = fila.Numero ?? 0,
                     Anio = fila.Anio ?? (short)fechaSancion.Year,
                     Sufijo = fila.Sufijo,
-                    CodigoNormalizado = await GenerarCodigoAsync(tipo.Codigo, organo.Codigo, ct),
+                    CodigoNormalizado = fila.Numero is { } numeroCargado && numeroCargado > 0
+                        ? Domain.Reglas.CodigoNormalizador.Armar(
+                            tipo.Codigo, organo.Codigo, fila.Anio ?? (short)fechaSancion.Year, numeroCargado)
+                        : await GenerarCodigoAsync(tipo.Codigo, organo.Codigo, ct),
                     Titulo = (fila.Titulo ?? Path.GetFileNameWithoutExtension(fila.Archivo))[..Math.Min(500, (fila.Titulo ?? fila.Archivo).Length)],
                     Resumen = fila.Resumen,
                     PalabrasClave = fila.PalabrasClave,
