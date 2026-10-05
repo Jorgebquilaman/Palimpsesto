@@ -137,7 +137,7 @@ function Catalogo<Fila extends { id: number }>({
         })}
       </ul>
       <form
-        className="space-y-2 border-t border-gray-100 pt-3 dark:border-gray-800"
+        className="space-y-2 border-t border-line pt-3"
         onSubmit={(e) => { e.preventDefault(); onCrear() }}
       >
         {Object.entries(formularios).map(([etiqueta, control]) => (

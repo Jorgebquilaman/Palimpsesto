@@ -136,16 +136,16 @@ export default function RevisionNorma() {
       <div className="flex flex-wrap items-center gap-3">
         <Link to="/admin/normas" className="text-sm underline text-ink-faint">← Volver</Link>
         <h1 className="text-xl font-bold">{norma.codigoNormalizado}</h1>
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-800">
+        <span className="rounded bg-verde-100 px-2 py-0.5 text-xs dark:bg-crema-100/5">
           {ETIQUETAS_ESTADO[norma.estado] ?? norma.estado}
         </span>
         {norma.textoOrigen === 'ocr' && <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">texto OCR</span>}
         <div className="ml-auto flex gap-2">
-          <button onClick={() => reprocesar.mutate()} className="rounded-lg border px-3 py-1.5 text-sm dark:border-gray-700">
+          <button onClick={() => reprocesar.mutate()} className="btn-secundario">
             Reprocesar
           </button>
           {norma.estado === 'publicada'
-            ? <button onClick={() => despublicar.mutate()} className="rounded-lg border px-3 py-1.5 text-sm dark:border-gray-700">Despublicar</button>
+            ? <button onClick={() => despublicar.mutate()} className="btn-secundario">Despublicar</button>
             : <button onClick={() => publicar.mutate()} disabled={norma.estado !== 'en_revision'}
                 className="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40">
                 Publicar
@@ -351,10 +351,10 @@ function FormularioRelacion({
         placeholder="código destino (ev. RES-CS-2024-0123)"
         value={codigoDestino}
         onChange={(e) => setCodigoDestino(e.target.value)}
-        className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800"
+        className="flex-1 campo"
       />
       <select value={tipo} onChange={(e) => setTipo(e.target.value)}
-        className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+        className="campo">
         <option value="modifica">modifica</option>
         <option value="deroga">deroga</option>
         <option value="derogaparcialmente">deroga parcialmente</option>

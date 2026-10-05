@@ -52,7 +52,7 @@ export default function NormasAdmin() {
 
       <form className="flex flex-wrap gap-2" onSubmit={(e) => e.preventDefault()}>
         <select value={estado} onChange={(e) => setEstado(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800">
+          className="campo">
           <option value="">Todos los estados</option>
           {Object.entries(ETIQUETAS_ESTADO).map(([valor, etiqueta]) => (
             <option key={valor} value={valor}>{etiqueta}</option>
@@ -68,7 +68,7 @@ export default function NormasAdmin() {
       {data && (
         <div className="overflow-x-auto rounded-md border border-line shadow-sm">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-ink-faint dark:bg-gray-800">
+            <thead className="bg-crema-50 text-left text-xs uppercase tracking-wide text-ink-faint dark:bg-verde-950/60">
               <tr>
                 <th className="px-3 py-2">Código</th>
                 <th className="px-3 py-2">Título</th>
@@ -84,7 +84,7 @@ export default function NormasAdmin() {
                   </td>
                   <td className="px-3 py-2">{n.titulo}</td>
                   <td className="px-3 py-2">
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-800">
+                    <span className="rounded bg-verde-100 px-2 py-0.5 text-xs dark:bg-crema-100/5">
                       {ETIQUETAS_ESTADO[n.estado] ?? n.estado}
                     </span>
                   </td>

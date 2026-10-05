@@ -487,3 +487,14 @@
     max-width: none;
   }
 }
+
+/* Ancla de artículo con rombo al pasar el mouse */
+@layer utilities {
+  .lectura article:hover h2::after,
+  .lectura article:hover h3::after {
+    content: ' ✦';
+    color: var(--accent);
+    font-size: 0.7em;
+    vertical-align: 0.15em;
+  }
+}

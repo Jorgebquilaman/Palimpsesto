@@ -17,7 +17,7 @@ export default function AuditoriaAdmin() {
       {data && (
         <div className="overflow-x-auto rounded-md border border-line shadow-sm">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-ink-faint dark:bg-gray-800">
+            <thead className="bg-crema-50 text-left text-xs uppercase tracking-wide text-ink-faint dark:bg-verde-950/60">
               <tr>
                 <th className="px-3 py-2">Fecha</th>
                 <th className="px-3 py-2">Usuario</th>

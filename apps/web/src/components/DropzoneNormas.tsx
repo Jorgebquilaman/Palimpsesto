@@ -58,7 +58,7 @@ export default function DropzoneNormas() {
       {subir.isError && <p role="alert" className="text-sm text-derogada-texto">{(subir.error as Error).message}</p>}
 
       {subir.data && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-800 dark:bg-gray-800">
+        <div className="panel p-3 text-sm">
           {subir.data.subidos.length > 0 && (
             <ul className="space-y-1">
               {subir.data.subidos.map(s => (

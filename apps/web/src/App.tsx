@@ -64,7 +64,7 @@ export default function App() {
           element={
             <main className="mx-auto max-w-3xl p-8">
               <h1 className="text-2xl font-bold">Digesto Normativo IUPA</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-400">Página no encontrada.</p>
+              <p className="mt-2 text-ink-soft">Página no encontrada.</p>
             </main>
           }
         />

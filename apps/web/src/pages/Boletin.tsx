@@ -57,7 +57,7 @@ export default function Boletin() {
               <Link to={`/boletin?numero=${encodeURIComponent(b.numero)}`}
                 className={`block rounded-lg border px-3 py-2 text-sm ${numero === b.numero
                   ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950'
-                  : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900'}`}>
+                  : 'border-line bg-surface hover:bg-verde-50'}`}>
                 <span className="font-medium">N° {b.numero}</span>
                 <span className="ml-2 text-xs text-ink-faint">{b.fechaPublicacion}</span>
               </Link>
@@ -86,7 +86,7 @@ export default function Boletin() {
               </ul>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-ink-faint dark:border-gray-700">
+            <div className="panel border-dashed p-8 text-center text-sm text-ink-faint">
               {numero ? 'Boletín no encontrado.' : 'Elegí un boletín para ver sus normas.'}
             </div>
           )}

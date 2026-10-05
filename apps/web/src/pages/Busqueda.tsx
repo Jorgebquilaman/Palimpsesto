@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDebounce } from '../components/useDebounce'
+import { Badge, Estado, EquemaEsqueletos } from '../components/ui'
 import {
   construirConsultaBusqueda,
   traerBusqueda,
@@ -293,7 +294,7 @@ export default function Busqueda() {
             </p>
           )}
 
-          {isPending && !resultados && <p aria-live="polite" className="text-sm text-ink-faint">Cargando resultados…</p>}
+          {isPending && !resultados && <EquemaEsqueletos cantidad={4} />}
 
           {resultados && (
             <>
@@ -304,7 +305,7 @@ export default function Busqueda() {
                 <label className="flex items-center gap-2">
                   Orden
                   <select value={orden} onChange={(e) => actualizar({ orden: e.target.value })}
-                    className="rounded border border-gray-300 bg-transparent px-1 py-0.5 dark:border-gray-700">
+                    className="rounded border border-line bg-transparent px-1 py-0.5">
                     {ORDENES.map(o => (
                       <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
                     ))}
@@ -313,19 +314,22 @@ export default function Busqueda() {
               </div>
 
               {resultados.items.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-                  <p className="font-medium">No se encontraron normas.</p>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    Probá con menos palabras o sin filtros.
-                  </p>
-                </div>
+                <Estado
+                  tipo="vacio"
+                  titulo="No se encontraron normas"
+                  detalle="Probá con menos palabras o sin filtros."
+                />
               ) : (
                 <>
                   <ul className="space-y-3">
-                    {resultados.items.map(item => (
-                      <li key={item.id} className="panel p-4">
-                        <p className="mb-1 flex flex-wrap items-center gap-2 text-xs text-ink-faint dark:text-ink-faint">
-                          <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">{item.codigo}</span>
+                    {resultados.items.map((item, indice) => (
+                      <li
+                        key={item.id}
+                        className="panel panel-hover aparece p-4"
+                        style={{ animationDelay: `${Math.min(indice, 8) * 40}ms` }}
+                      >
+                        <p className="num-tabulares mb-1 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
+                          <span className="rounded bg-verde-100 px-1.5 py-0.5 font-mono dark:bg-crema-100/5">{item.codigo}</span>
                           <BadgeVigencia vigencia={item.vigencia} />
                           {item.tieneOcr && <span className="rounded bg-barro-100 px-1.5 py-0.5 text-acento-texto">texto OCR</span>}
                         </p>
@@ -383,18 +387,7 @@ export default function Busqueda() {
 }
 
 function BadgeVigencia({ vigencia }: { vigencia: string }) {
-  const estilos: Record<string, string> = {
-    vigente: 'bg-verde-100 text-vigente-texto',
-    modificada: 'bg-crema-200 text-modificada-texto',
-    derogada: 'bg-barro-100 text-derogada-texto',
-    derogada_parcialmente: 'bg-barro-100 text-derogada-texto',
-    deja_sin_efecto: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  }
-  return (
-    <span className={`rounded px-1.5 py-0.5 ${estilos[vigencia] ?? 'bg-gray-100 text-gray-700'}`}>
-      {ETIQUETAS_VIGENCIA[vigencia] ?? vigencia}
-    </span>
-  )
+  return <Badge vigencia={vigencia} />
 }
 
 function Faceta({

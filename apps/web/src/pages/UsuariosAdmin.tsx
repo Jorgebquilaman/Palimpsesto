@@ -43,15 +43,15 @@ export default function UsuariosAdmin() {
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">Crear usuario</h2>
         <form className="grid gap-3 md:grid-cols-5" onSubmit={(e) => { e.preventDefault(); crear.mutate() }}>
           <input placeholder="usuario" value={form.usuario} onChange={e => setForm((f: CrearUsuarioRequest) => ({ ...f, usuario: e.target.value }))}
-            className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800" />
+            className="campo" />
           <input placeholder="nombre" value={form.nombre} onChange={e => setForm((f: CrearUsuarioRequest) => ({ ...f, nombre: e.target.value }))}
-            className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800" />
+            className="campo" />
           <input placeholder="email" type="email" value={form.email} onChange={e => setForm((f: CrearUsuarioRequest) => ({ ...f, email: e.target.value }))}
-            className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800" />
+            className="campo" />
           <input placeholder="contraseña" type="password" value={form.contrasenia} onChange={e => setForm((f: CrearUsuarioRequest) => ({ ...f, contrasenia: e.target.value }))}
-            className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800" />
+            className="campo" />
           <select value={form.rol} onChange={e => setForm((f: CrearUsuarioRequest) => ({ ...f, rol: e.target.value }))}
-            className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            className="campo">
             <option value="admin">admin</option>
             <option value="editor">editor</option>
             <option value="revisor">revisor</option>
@@ -69,7 +69,7 @@ export default function UsuariosAdmin() {
       {data && (
         <div className="overflow-x-auto rounded-md border border-line shadow-sm">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-ink-faint dark:bg-gray-800">
+            <thead className="bg-crema-50 text-left text-xs uppercase tracking-wide text-ink-faint dark:bg-verde-950/60">
               <tr>
                 <th className="px-3 py-2">Usuario</th>
                 <th className="px-3 py-2">Nombre</th>

@@ -191,3 +191,21 @@ Un contenedor con SOLO red interna no recibe `PortBindings` en el host (Docker l
 - El PDF descargado keep SHA-256 idéntico al subido (`0b08cdcc06fc7b5a685f…`).
 - Búsqueda p95 ≈ 100 ms con 50k normas / 250k fragmentos.
 - `docker compose up -d` deja API+worker+web+postgres funcionando con seed de catálogos y usuario admin.
+
+## Diseño visual — sistema de diseño
+
+**Fuentes autoalojadas vía paquetes Fontsource** (fraunces variable, source-serif-4 variable, montserrat estático): quedan en node_modules/`public` del bundle de Vite, cero pedidos externos en runtime, `font-display: swap` incluido por el paquete.
+
+**Paleta como CSS variables + `@theme inline` de Tailwind v4.** Los tokens semánticos (`--bg`, `--surface`, `--text`…) cambian bajo `.dark` (clase puesta por script inline en `index.html` para evitar FOUC, con `prefers-color-scheme` como default y toggle manual persistido). Los utilitarios de Tailwind (`bg-surface`, `text-ink`…) referencian las variables, y el modo oscuro no necesita variantes `dark:`.
+
+**Test de contraste como pipeline del build** (`scripts/contraste.mjs`): lee el CSS, resuelve la cascada `:root`/`.dark` y valida 15 pares texto-fondo contra WCAG AA (4.5:1). Detectó 2 fallos reales (badge ámbar en claro, badges en oscuro comparados contra fondos claros); corregidos con `--modificada-texto: #7d5009` y pares por modo.
+
+**Sombras teñidas de verde + `--highlight: inset`** en `.panel`, botones y campos: nunca negro puro. Radios 10/16/24 px mapeados al namespace `--radius-*` de Tailwind.
+
+**Textura papel con SVG de ruido inline** (feTurbulence, ~300 bytes) tintado distinto para claro/oscuro; se apaga con `prefers-reduced-transparency` y en el backoffice (`.sin-textura`). El hero combur degradado 160° + radial + ruido `soft-light`.
+
+**Backoffice más calma**: barra lateral verde-950 con estado activo, fondo liso crema, tablas densas; la revisión mantiene la estructura left/right ya existente.
+
+**Print limpio**: `@media print` remueve texturas, sombras y elementos `.no-print` (cabecera, tabs, índice, acciones); `.lectura` cae a 12pt a ancho completo.
+
+**Adorno de línea única** (`OrnamentoLinea`): trazo original, un gradiente de terracota que se disipa; usado en el hero y el estado vacío. Rombo `✦` como detalle de marca en títulos de sección, logo placeholder, sidebar y anclas al hover.

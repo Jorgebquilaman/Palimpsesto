@@ -101,7 +101,7 @@ export default function Norma() {
         <>
           <header className="mt-4 panel p-5">
             <p className="mb-2 flex flex-wrap items-center gap-2 text-xs text-ink-faint dark:text-ink-faint">
-              <span className="rounded bg-gray-100 px-2 py-0.5 font-mono dark:bg-gray-800">{norma.codigoNormalizado}</span>
+              <span className="rounded bg-verde-100 px-2 py-0.5 font-mono dark:bg-crema-100/5">{norma.codigoNormalizado}</span>
               <span className={`rounded px-2 py-0.5 ${estiloVigencia(norma.vigencia)}`}>
                 {ETIQUETAS_VIGENCIA[norma.vigencia] ?? norma.vigencia}
               </span>
@@ -118,7 +118,7 @@ export default function Norma() {
               {norma.organo.nombre} · sanción {norma.fechaSancion}
               {norma.fechaPublicacion && <> · publicación {norma.fechaPublicacion}</>}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="no-print mt-3 flex flex-wrap gap-2">
               <button onClick={copiarCita} className="btn-primario">
                 Copiar cita
               </button>
@@ -139,8 +139,8 @@ export default function Norma() {
             </div>
           </header>
 
-          <div className="mt-4">
-            <div role="tablist" aria-label="Secciones de la norma" className="flex gap-1 border-b border-gray-200 dark:border-gray-800">
+          <div className="no-print mt-4">
+            <div role="tablist" aria-label="Secciones de la norma" className="flex gap-1 border-b border-line">
               {PESTANAS.map(([valor, etiqueta]) => (
                 <button
                   key={valor}
@@ -148,8 +148,8 @@ export default function Norma() {
                   aria-selected={pestana === valor}
                   onClick={() => setPestana(valor)}
                   className={`rounded-t-lg px-4 py-2 text-sm font-medium ${pestana === valor
-                    ? 'border border-b-0 border-gray-200 bg-white text-blue-700 dark:border-gray-800 dark:bg-gray-900 dark:text-blue-400'
-                    : 'text-ink-faint hover:text-ink dark:text-ink-faint dark:hover:text-gray-200'}`}
+                    ? 'border border-b-0 border-line bg-surface text-acento-texto'
+                    : 'text-ink-faint hover:text-ink'}`}
                 >
                   {etiqueta}
                 </button>
@@ -160,8 +160,8 @@ export default function Norma() {
           <div className="mt-4">
             {pestana === 'texto' && texto && (
               <div className="grid gap-4 md:grid-cols-[260px_1fr]">
-                <aside aria-label="Índice de artículos" className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint dark:text-ink-faint">Índice</h3>
+                <aside aria-label="Índice de artículos" className="panel no-print max-h-[70vh] overflow-auto p-3">
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Índice</h3>
                   <ol className="space-y-1 text-sm">
                     {texto.fragmentos.map(f => (
                       <li key={f.orden}>
@@ -247,7 +247,7 @@ export default function Norma() {
                       ['Origen del texto', norma.textoOrigen === 1 ? 'PDF con texto nativo' : 'OCR (puede contener errores)'],
                       ['Resumen', norma.resumen ?? '—'],
                     ].map(([clave, valor]) => (
-                      <tr key={clave} className="border-b border-gray-100 dark:border-gray-800">
+                      <tr key={clave} className="border-b border-line">
                         <th scope="row" className="w-48 text-left py-2 font-medium text-ink-soft">{clave}</th>
                         <td className="py-2">{valor}</td>
                       </tr>
@@ -337,10 +337,10 @@ function VisorPdf({ codigo }: { codigo: string }) {
     <section aria-label="Visor del PDF original" className="panel p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
         <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1}
-          className="rounded border px-2 py-1 disabled:opacity-40 dark:border-gray-700">←</button>
+          className="btn-secundario px-2 py-1 disabled:opacity-40">←</button>
         <span>Página {pagina} de {totalPaginas}</span>
         <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas}
-          className="rounded border px-2 py-1 disabled:opacity-40 dark:border-gray-700">→</button>
+          className="btn-secundario px-2 py-1 disabled:opacity-40">→</button>
         <span className="mx-2">|</span>
         <button onClick={() => setEscala(e => Math.max(0.5, e - 0.25))} className="btn-secundario px-2 py-1">−</button>
         <span>{Math.round(escala * 100)}%</span>
@@ -404,7 +404,7 @@ function LienzosPdf({
   }, [pdfUrl, pagina, escala, onPaginas])
 
   return (
-    <div className="mx-auto overflow-auto bg-gray-100 p-2 dark:bg-gray-800">
+    <div className="mx-auto overflow-auto bg-canvas p-2">
       <canvas ref={lienzo} className="mx-auto block shadow-lg" />
     </div>
   )
@@ -416,7 +416,7 @@ function estiloVigencia(vigencia: string): string {
     modificada: 'bg-crema-200 text-modificada-texto',
     derogada: 'bg-barro-100 text-derogada-texto',
     derogada_parcialmente: 'bg-barro-100 text-derogada-texto',
-    deja_sin_efecto: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+    deja_sin_efecto: 'bg-verde-100 text-ink-soft',
   }
-  return estilos[vigencia] ?? 'bg-gray-100 text-gray-700'
+  return estilos[vigencia] ?? 'bg-verde-100 text-ink-soft'
 }
