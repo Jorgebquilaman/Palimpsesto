@@ -143,7 +143,7 @@ export default function Busqueda() {
         </div>
       </section>
 
-      <main className="mx-auto -mt-8 max-w-6xl px-4 pb-20 sm:-mt-12">
+      <main className="relative z-10 mx-auto -mt-8 max-w-6xl px-4 pb-20 sm:-mt-12">
         <section id="formulario-busqueda" className="ancla-con-header panel panel-elevada rounded-lg p-4 sm:p-5" aria-label="Formulario de búsqueda">
           <form
             onSubmit={(e) => {

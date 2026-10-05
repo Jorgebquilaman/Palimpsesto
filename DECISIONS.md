@@ -244,3 +244,9 @@ Todo con radios y colores de tokens; el contraste WCAG AA sigue pasando (15 pare
 - Icons line-art simples (unicode ligeros) con acento terracota, nunca solo color.
 
 **Par de contraste nuevo en el test**: `--on-acento/--accent` (16 pares en total).
+
+## Fix — superposición portada + faceta de vigencia
+
+**El hero tapaba la tarjeta de búsqueda**: el hero es `relative` y `main` estático; en CSS los elementos posicionados pintan encima de los estáticos aunque el estático venga después (por el margen negativo que los superpone). Solución: `relative z-10` en el `main` de la portada. Verificado con captura headless (Playwright) a 1280/360 px, claro y oscuro, cero scroll horizontal.
+
+**Faceta de vigencia mostraba el int del enum** (`n.vigencia::text`); ahora el SQL mapea a los nombres (`vigente`, `derogada_parcialmente`…).

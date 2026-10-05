@@ -363,7 +363,12 @@ public class BuscadorNormas : IBuscadorNormas
             WHERE {where}
             GROUP BY n.anio
             UNION ALL
-            SELECT 'vigencia', n.vigencia, n.vigencia::text, count(*)
+            SELECT 'vigencia', n.vigencia,
+                   CASE n.vigencia
+                     WHEN 1 THEN 'vigente' WHEN 2 THEN 'modificada' WHEN 3 THEN 'derogada'
+                     WHEN 4 THEN 'derogada_parcialmente' WHEN 5 THEN 'deja_sin_efecto'
+                   END,
+                   count(*)
             FROM norma n
             WHERE {where}
             GROUP BY n.vigencia
