@@ -38,7 +38,7 @@ public class NormasAdminDetalleController : ControllerBase
             .Include(n => n.OrganoEmisor)
             .AsQueryable();
 
-        if (Enum.TryParse<EstadoPublicacion>(estado, ignoreCase: true, out var estadoEnum))
+        if (Enum.TryParse<EstadoPublicacion>(estado?.Replace("_", ""), ignoreCase: true, out var estadoEnum))
         {
             query = query.Where(n => n.EstadoPublicacion == estadoEnum);
         }
@@ -63,7 +63,7 @@ public class NormasAdminDetalleController : ControllerBase
                 n.Anio,
                 n.Titulo,
                 n.FechaSancion,
-                Estado = n.EstadoPublicacion.ToString().ToLowerInvariant(),
+                Estado = EstadoSnakeFmt.EstadoSnake(n.EstadoPublicacion),
                 n.Visibilidad,
                 n.Vigencia,
             })
@@ -108,7 +108,7 @@ public class NormasAdminDetalleController : ControllerBase
             norma.BoletinId,
             Vigencia = norma.Vigencia.ToString().ToLowerInvariant(),
             Visibilidad = norma.Visibilidad.ToString().ToLowerInvariant(),
-            Estado = norma.EstadoPublicacion.ToString().ToLowerInvariant(),
+            Estado = EstadoSnakeFmt.EstadoSnake(norma.EstadoPublicacion),
             TextoOrigen = norma.TextoOrigen.ToString().ToLowerInvariant(),
             Archivos = norma.Archivos.Select(a => new { a.Id, a.NombreOriginal, a.Sha256, a.Bytes, a.Paginas, Rol = a.Rol.ToString().ToLowerInvariant() }),
             Fragmentos = norma.Fragmentos.Select(f => new
@@ -341,3 +341,12 @@ public record ActualizarNormaRequest(
     Vigencia? Vigencia);
 
 public record FragmentoEditado(int Orden, string? Etiqueta, string Texto, string? Html);
+
+internal static class EstadoSnakeFmt
+{
+    public static string EstadoSnake(EstadoPublicacion estado) => estado switch
+    {
+        EstadoPublicacion.EnRevision => "en_revision",
+        _ => estado.ToString().ToLowerInvariant(),
+    };
+}
