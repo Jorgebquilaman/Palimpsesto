@@ -195,6 +195,11 @@ export default function Norma() {
                       placeholder="término" />
                   </label>
                 </aside>
+                <div role="note" className="mb-4 rounded-md border border-acento/40 bg-barro-100/50 px-4 py-3 text-sm text-ink">
+                  <strong>Nota:</strong> este texto es una transcripción con fines de lectura. En caso de
+                  diferencia con el documento original firmado, <strong>prevalece el PDF</strong> de la
+                  solapa «PDF original».
+                </div>
                 <section aria-label="Texto de la norma" className="panel p-6">
                   <TextoNorma
                     fragmentos={texto.fragmentos}
@@ -294,32 +299,47 @@ function TextoNorma({ fragmentos, terminos }: { fragmentos: { orden: number; pag
     if (!raiz) return
 
     raiz.querySelectorAll('mark.resaltado-digesto').forEach(m => {
-      const padre = m.parentNode
-      if (padre) {
-        padre.replaceChild(document.createTextNode(m.textContent ?? ''), m)
-        Normalizer()
-      }
+      m.replaceWith(document.createTextNode(m.textContent ?? ''))
     })
+    raiz.normalize()
 
     const termino = terminos?.trim()
     if (!termino || termino.length < 3) {
-      Normalizer()
       return
     }
 
-    const regex = new RegExp(`^${termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'iu')
+    const regex = new RegExp(termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu')
     const treeWalker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT)
     const candidatos: Text[] = []
     while (treeWalker.nextNode()) {
-      const node = treeWalker.currentNode as Text
-      if (node.textContent && regex.test(node.textContent)) candidatos.push(node)
+      const nodo = treeWalker.currentNode as Text
+      if (nodo.textContent) {
+        regex.lastIndex = 0
+        if (regex.test(nodo.textContent)) candidatos.push(nodo)
+      }
     }
+
     for (const nodo of candidatos) {
-      const texto = nodo.textContent as string
-      const marca = document.createElement('mark')
-      marca.className = 'resaltado-digesto'
-      marca.textContent = texto
-      nodo.parentNode?.replaceChild(marca, nodo)
+      const texto = nodo.textContent ?? ''
+      const trozo = document.createDocumentFragment()
+      let ultimo = 0
+      regex.lastIndex = 0
+      let hallazgo: RegExpExecArray | null
+      while ((hallazgo = regex.exec(texto))) {
+        if (hallazgo.index > ultimo) {
+          trozo.append(document.createTextNode(texto.slice(ultimo, hallazgo.index)))
+        }
+        const marca = document.createElement('mark')
+        marca.className = 'resaltado-digesto'
+        marca.textContent = hallazgo[0]
+        trozo.append(marca)
+        ultimo = hallazgo.index + hallazgo[0].length
+        if (hallazgo[0].length === 0) regex.lastIndex += 1
+      }
+      if (ultimo < texto.length) {
+        trozo.append(document.createTextNode(texto.slice(ultimo)))
+      }
+      nodo.parentNode?.replaceChild(trozo, nodo)
     }
   }, [terminos, fragmentos])
 
@@ -341,6 +361,3 @@ function TextoNorma({ fragmentos, terminos }: { fragmentos: { orden: number; pag
   )
 }
 
-function Normalizer() {
-  void 0
-}
