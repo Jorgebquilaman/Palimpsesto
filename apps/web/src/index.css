@@ -331,6 +331,10 @@
     box-shadow: 0 0 0 3px rgb(240 175 143 / 0.35), var(--shadow-sm);
   }
 
+  .ancla-con-header {
+    scroll-margin-top: 5.5rem;
+  }
+
   .banda-salvia {
     background: var(--verde-700);
     color: var(--crema-50);

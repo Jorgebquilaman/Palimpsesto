@@ -107,7 +107,7 @@ export default function Busqueda() {
 
   return (
     <>
-      <section className="hero-verde no-print relative px-4 pb-24 pt-14 sm:pb-28 sm:pt-16">
+      <section className="hero-verde no-print relative px-4 pb-24 pt-8 sm:pb-28 sm:pt-12">
         <div className="relative mx-auto grid max-w-5xl gap-10 sm:grid-cols-[1.2fr_1fr] sm:items-center">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-crema-100/60">
@@ -144,7 +144,7 @@ export default function Busqueda() {
       </section>
 
       <main className="mx-auto -mt-8 max-w-6xl px-4 pb-20 sm:-mt-12">
-        <section id="formulario-busqueda" aria-label="Formulario de búsqueda" className="panel panel-elevada rounded-lg p-4 sm:p-5">
+        <section id="formulario-busqueda" className="ancla-con-header panel panel-elevada rounded-lg p-4 sm:p-5" aria-label="Formulario de búsqueda">
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -295,20 +295,6 @@ export default function Busqueda() {
           </div>
         )}
 
-        {!q && !numero && !anio && !tipoId && !organoId && !desde && !hasta && !vigencia && (
-          <section aria-label="Accesos rápidos" className="banda-salvia -mx-4 mt-8 rounded-lg px-6 py-10 sm:-mx-5 sm:px-10">
-            <h2 className="text-center font-display text-titulo font-semibold tracking-tight">
-              Accesos rápidos
-            </h2>
-            <div className="mx-auto mt-6 grid max-w-4xl gap-6 text-center sm:grid-cols-4">
-              <AccesoRapido icono="◉" titulo="Vigentes" detalle="Las normas de cumplimiento obligatorio hoy" onClick={() => { setFiltrosAbiertos(true); actualizar({ vigencia: 'vigente' }) }} />
-              <AccesoRapido icono="⎙" titulo="Últimas sanciones" detalle="Ordenadas por fecha, las más nuevas primero" onClick={() => actualizar({ orden: 'fecha_desc' })} />
-              <AccesoRapido icono="☰" titulo="Por tipo de norma" detalle="Resoluciones, ordenanzas y más" onClick={() => { setFiltrosAbiertos(true); actualizar({ orden: 'fecha_desc' }) }} />
-              <AccesoRapido icono="⌁" titulo="Boletines oficiales" detalle="Cada publicación con sus normas" ruta="/boletin" />
-            </div>
-          </section>
-        )}
-
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_260px]">
           <section aria-label="Resultados">
             {isError && (
@@ -429,6 +415,20 @@ export default function Busqueda() {
           </aside>
         </div>
       </main>
+
+      {!q && !numero && !anio && !tipoId && !organoId && !desde && !hasta && !vigencia && (
+        <section aria-label="Accesos rápidos" className="banda-salvia no-print px-4 py-14">
+          <h2 className="text-center font-display text-titulo font-semibold tracking-tight">
+            Accesos rápidos
+          </h2>
+          <div className="mx-auto mt-8 grid max-w-4xl gap-6 text-center sm:grid-cols-4">
+            <AccesoRapido icono="◉" titulo="Vigentes" detalle="Las normas de cumplimiento obligatorio hoy" onClick={() => { setFiltrosAbiertos(true); actualizar({ vigencia: 'vigente' }) }} />
+            <AccesoRapido icono="⎙" titulo="Últimas sanciones" detalle="Ordenadas por fecha, las más nuevas primero" onClick={() => actualizar({ orden: 'fecha_desc' })} />
+            <AccesoRapido icono="☰" titulo="Por tipo de norma" detalle="Resoluciones, ordenanzas y más" onClick={() => { setFiltrosAbiertos(true); actualizar({ orden: 'fecha_desc' }) }} />
+            <AccesoRapido icono="⌁" titulo="Boletines oficiales" detalle="Cada publicación con sus normas" ruta="/boletin" />
+          </div>
+        </section>
+      )}
     </>
   )
 }
