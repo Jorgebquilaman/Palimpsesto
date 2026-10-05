@@ -1,10 +1,13 @@
-# Etapa 1: build
+# Etapa 1: build (restore cacheado por csproj)
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY DigestoIupa.slnx ./
-COPY src/ src/
-RUN dotnet restore
-RUN dotnet publish src/Digesto.Worker -c Release -o /app/publish --no-restore
+WORKDIR /f
+COPY src/Digesto.Domain/Digesto.Domain.csproj Digesto.Domain/
+COPY src/Digesto.Application/Digesto.Application.csproj Digesto.Application/
+COPY src/Digesto.Infrastructure/Digesto.Infrastructure.csproj Digesto.Infrastructure/
+COPY src/Digesto.Worker/Digesto.Worker.csproj Digesto.Worker/
+RUN dotnet restore Digesto.Worker/Digesto.Worker.csproj
+COPY src/ .
+RUN dotnet publish Digesto.Worker/Digesto.Worker.csproj -c Release -o /app/publish
 
 # Etapa 2: runtime con herramientas de PDF/OCR
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
@@ -14,7 +17,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr-spa \
     && rm -rf /var/lib/apt/lists/*
 
-# Usuario sin privilegios y sin acceso a red de salida
 RUN useradd --create-home --uid 1001 worker
 USER worker
 

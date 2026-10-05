@@ -581,3 +581,6 @@ appsettings.Development.json
 *.user
 .env
 .DS_Store
+
+# Archivos de ingesta local
+archivos/

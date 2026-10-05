@@ -21,8 +21,11 @@ public static class DependenciasDigesto
             options.UseNpgsql(cadenaConexion)
                 .UseSnakeCaseNamingConvention());
 
-        services.AddSingleton<IFileStorage>(new FileStorageLocal(
-            raizArchivos ?? Path.Combine(Directory.GetCurrentDirectory(), "archivos")));
+        if (string.IsNullOrWhiteSpace(raizArchivos))
+        {
+            raizArchivos = Path.Combine(Directory.GetCurrentDirectory(), "archivos");
+        }
+        services.AddSingleton<IFileStorage>(new FileStorageLocal(raizArchivos.Trim()));
 
         services.AddScoped<SeedDigesto>();
 

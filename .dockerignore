@@ -1,7 +1,6 @@
 .git
 .github
 tests
-docker
 *.md
 .env
 .env.example
@@ -10,3 +9,5 @@ docker
 **/dist
 **/node_modules
 **/.DS_Store
+
+# Reconstruí el .dockerignore sin excluir el .slnx

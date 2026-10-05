@@ -28,7 +28,8 @@ try
 
     builder.Services.AddDigestoInfrastructure(
         cadenaConexion,
-        builder.Configuration["FileStorage:Root"]
+        Environment.GetEnvironmentVariable("FileStorage__Root")
+            ?? builder.Configuration["FileStorage:Root"]
             ?? Environment.GetEnvironmentVariable("FILE_STORAGE_ROOT"));
 
     builder.Services.AddHostedService<IngestaWorker>();

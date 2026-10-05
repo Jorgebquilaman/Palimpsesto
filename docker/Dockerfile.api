@@ -1,10 +1,13 @@
-# Etapa 1: build
+# Etapa 1: build (restore cacheado por csproj)
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY DigestoIupa.slnx ./
-COPY src/ src/
-RUN dotnet restore
-RUN dotnet publish src/Digesto.Api -c Release -o /app/publish --no-restore
+WORKDIR /f
+COPY src/Digesto.Domain/Digesto.Domain.csproj Digesto.Domain/
+COPY src/Digesto.Application/Digesto.Application.csproj Digesto.Application/
+COPY src/Digesto.Infrastructure/Digesto.Infrastructure.csproj Digesto.Infrastructure/
+COPY src/Digesto.Api/Digesto.Api.csproj Digesto.Api/
+RUN dotnet restore Digesto.Api/Digesto.Api.csproj
+COPY src/ .
+RUN dotnet publish Digesto.Api/Digesto.Api.csproj -c Release -o /app/publish
 
 # Etapa 2: runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0

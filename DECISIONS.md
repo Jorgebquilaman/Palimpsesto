@@ -171,3 +171,23 @@ Un contenedor con una única red `internal: true` no publica puertos al host —
 
 **2026-10-04 — `consulta_busqueda` se llena en cada búsqueda pública y `GET /admin/estadisticas/busquedas` expone populares + sin resultados.**
 Anonimizado por diseño (sin usuario ni IP). El log es la base para las alertas Fase 2 y alimenta el panel de estadísticas del backoffice.
+
+## Ajustes finales (post-hito 8)
+
+**2026-10-05 — Docker: restore por csproj, no por slnx.**
+El SDK 8.0 en contenedor no reconoce `.slnx` (formato del SDK 10 de la máquina local). Los Dockerfiles restauran por los csproj con capa cacheada por proyecto (patrón de restore parcial + `COPY src/ .`), compilación en `/f` para evitar el duplicado `/src/src`. Además `.dockerignore` no debe excluir `docker/` (nginx.conf es necesario en la imagen de web) ni el `.slnx`.
+
+**2026-10-05 — `FileStorage__Root` con precedencia explícita (env → config → FILE_STORAGE_ROOT).**
+`builder.Configuration["FileStorage:Root"]` no ve la env var `FileStorage__Root` en contenedor por el orden de providers en producción; se resuelvo en ese orden explícito en Api y Worker para garantizar la misma raíz compartida en el volumen `archivos`.
+
+**2026-10-05 — `mysql no eran mysql: registro de consultas con DBNull.**
+Dapper no acepta `DBNull.Value` para parámetros anónimos; envuelve en cast `(object)` correctamente o usa string nula. Solo manda `NULL` si la búsqueda vino sin texto.
+
+**2026-10-05 — Diagnóstico del compose: puertos no publicados con red `internal: true` única.**
+Un contenedor con SOLO red interna no recibe `PortBindings` en el host (Docker lo descarta). Postgres está en backend+frontend para poder desarrollarlo; el worker sigue aislado.
+
+**2026-10-05 — Criterios de aceptación validados en el stack completo:**
+- Subir un PDF con texto y encontrollarlo por palabra del cuerpo con/sin acentos (y eso ya en hito 3, re-verificado en Docker con ingesta real).
+- El PDF descargado keep SHA-256 idéntico al subido (`0b08cdcc06fc7b5a685f…`).
+- Búsqueda p95 ≈ 100 ms con 50k normas / 250k fragmentos.
+- `docker compose up -d` deja API+worker+web+postgres funcionando con seed de catálogos y usuario admin.

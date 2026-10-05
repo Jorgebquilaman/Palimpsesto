@@ -78,7 +78,7 @@ public class BuscadorNormas : IBuscadorNormas
         try
         {
             var pLog = new DynamicParameters();
-            pLog.Add("@q", (object?)filtros.Q ?? DBNull.Value);
+            pLog.Add("@q", string.IsNullOrWhiteSpace(filtros.Q) ? (object)DBNull.Value : filtros.Q);
             pLog.Add("@filtros", System.Text.Json.JsonSerializer.Serialize(new
             {
                 filtros.Modo,
