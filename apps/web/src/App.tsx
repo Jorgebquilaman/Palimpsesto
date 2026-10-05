@@ -56,7 +56,8 @@ export default function App() {
           <Route element={<LayoutAdmin />}>
             <Route path="normas" element={<NormasAdmin />} />
             <Route path="normas/:id" element={<RevisionNorma />} />
-            <Route path="catalogos" element={<CatalogosAdmin />} />
+            <Route path="catalogos" element={<Navigate to="/admin/catalogos/tipos" replace />} />
+            <Route path="catalogos/:seccion" element={<CatalogosAdmin />} />
             <Route path="auditoria" element={<AuditoriaAdmin />} />
             <Route path="usuarios" element={<UsuariosAdmin />} />
             <Route path="ai" element={<AiAdmin />} />

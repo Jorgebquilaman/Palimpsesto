@@ -1,161 +1,262 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Navigate, useParams } from 'react-router-dom'
 import { pedirAdmin } from '../api/adminApi'
 import type { CatalogosAdmin } from '../api/adminApi'
+import { TituloSeccion } from '../components/ui'
+
+const TITULOS: Record<string, { titulo: string; descripcion: string }> = {
+  tipos: {
+    titulo: 'Tipos de norma',
+    descripcion: 'Las categorías con las que se identifican los documentos (RES, DIS, ORD…). Definen la primera parte del código.',
+  },
+  organos: {
+    titulo: 'Órganos emisores',
+    descripcion: 'Quiénes dictan las normas (Rectorado, Secretarías…). Definen la segunda parte del código.',
+  },
+  materias: {
+    titulo: 'Materias',
+    descripcion: 'La estructura temática para agrupar y encontrar normas por tema.',
+  },
+}
 
 export default function CatalogosAdmin() {
-  const cliente = useQueryClient()
+  const { seccion } = useParams()
+  if (!seccion || !(seccion in TITULOS)) {
+    return <Navigate to="/admin/catalogos/tipos" replace />
+  }
 
+  const meta = TITULOS[seccion]
+
+  return (
+    <div className="max-w-3xl space-y-5">
+      <header>
+        <TituloSeccion>{meta.titulo}</TituloSeccion>
+        <p className="text-sm text-ink-soft">{meta.descripcion}</p>
+      </header>
+      {seccion === 'tipos' && <SeccionTipos />}
+      {seccion === 'organos' && <SeccionOrganos />}
+      {seccion === 'materias' && <SeccionMaterias />}
+    </div>
+  )
+}
+
+function SeccionTipos() {
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['admin-catalogos'],
     queryFn: () => pedirAdmin<CatalogosAdmin>('/admin/catalogos'),
   })
 
-  const [tipoNuevo, setTipoNuevo] = useState({ codigo: '', nombre: '', alcance: 'general' })
-  const [organoNuevo, setOrganoNuevo] = useState({ codigo: '', nombre: '' })
-  const [materiaNueva, setMateriaNueva] = useState({ nombre: '' })
+  const cliente = useQueryClient()
+  const [nuevo, setNuevo] = useState({ codigo: '', nombre: '' })
   const [mensaje, setMensaje] = useState('')
 
-  const crearTipo = useMutation({
-    mutationFn: () => pedirAdmin('/admin/catalogos/tipos', { method: 'POST', body: JSON.stringify(tipoNuevo) }),
-    onSuccess: () => { setMensaje('Tipo creado'); setTipoNuevo({ codigo: '', nombre: '', alcance: 'general' }); void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }) },
+  const crear = useMutation({
+    mutationFn: () => pedirAdmin('/admin/catalogos/tipos', {
+      method: 'POST',
+      body: JSON.stringify({ ...nuevo, alcance: 'general' }),
+    }),
+    onSuccess: () => { setMensaje('Tipo creado'); setNuevo({ codigo: '', nombre: '' }); void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }) },
     onError: (e) => setMensaje((e as Error).message),
   })
 
-  const crearOrgano = useMutation({
-    mutationFn: () => pedirAdmin('/admin/catalogos/organos', { method: 'POST', body: JSON.stringify(organoNuevo) }),
-    onSuccess: () => { setMensaje('Órgano creado'); setOrganoNuevo({ codigo: '', nombre: '' }); void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }) },
-    onError: (e) => setMensaje((e as Error).message),
-  })
-
-  const crearMateria = useMutation({
-    mutationFn: () => pedirAdmin('/admin/catalogos/materias', { method: 'POST', body: JSON.stringify(materiaNueva) }),
-    onSuccess: () => { setMensaje('Materia creada'); setMateriaNueva({ nombre: '' }); void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }) },
-    onError: (e) => setMensaje((e as Error).message),
-  })
-
-  const desactivarTipo = useMutation({
+  const desactivar = useMutation({
     mutationFn: (id: number) => pedirAdmin(`/admin/catalogos/tipos/${id}`, { method: 'DELETE' }),
     onSuccess: () => void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }),
   })
 
-  const desactivarOrgano = useMutation({
+  const filas = data?.tipos ?? []
+  const activos = filas.filter(t => t.activo).length
+
+  return (
+    <>
+      <div aria-live="polite">{mensaje && <p className="text-sm text-vigente-texto">{mensaje}</p>}</div>
+      <form className="panel flex flex-wrap items-end gap-3 p-4"
+        onSubmit={(e) => { e.preventDefault(); crear.mutate() }}>
+        <label className="block flex-1 text-xs font-medium text-ink-soft">
+          Código
+          <input value={nuevo.codigo} onChange={e => setNuevo(t => ({ ...t, codigo: e.target.value.toUpperCase() }))}
+            placeholder="RES" maxLength={10} className="campo mt-1" required />
+        </label>
+        <label className="block flex-[2] text-xs font-medium text-ink-soft">
+          Nombre
+          <input value={nuevo.nombre} onChange={e => setNuevo(t => ({ ...t, nombre: e.target.value }))}
+            placeholder="Resolución" className="campo mt-1" required />
+        </label>
+        <button disabled={crear.isPending} type="submit" className="btn-primario disabled:opacity-50">
+          {crear.isPending ? 'Creando…' : 'Crear tipo'}
+        </button>
+      </form>
+
+      {isError && <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>}
+      {isPending && <p aria-live="polite" className="text-sm text-ink-faint">Cargando…</p>}
+
+      {data && (
+        <table className="panel w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
+              <th scope="col" className="px-4 py-2.5">Código</th>
+              <th scope="col" className="px-4 py-2.5">Nombre</th>
+              <th scope="col" className="px-4 py-2.5">Estado</th>
+              <th scope="col" className="px-4 py-2.5 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map(f => (
+              <tr key={f.id} className="border-b border-line last:border-0 hover:bg-verde-50 dark:hover:bg-crema-100/5">
+                <td className="px-4 py-2.5 font-mono text-xs">{f.codigo}</td>
+                <td className="px-4 py-2.5">{f.nombre} <span className="text-xs text-ink-faint">({f.alcance})</span></td>
+                <td className={`px-4 py-2.5 text-xs ${f.activo ? 'text-vigente-texto' : 'text-ink-faint'}`}>{f.activo ? 'activo' : 'inactivo'}</td>
+                <td className="px-4 py-2.5 text-right">
+                  {f.activo && activos > 1 && (
+                    <button type="button" onClick={() => desactivar.mutate(f.id)} className="text-xs underline text-ink-faint hover:text-ink">
+                      desactivar
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  )
+}
+
+function SeccionOrganos() {
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: ['admin-catalogos'],
+    queryFn: () => pedirAdmin<CatalogosAdmin>('/admin/catalogos'),
+  })
+
+  const cliente = useQueryClient()
+  const [nuevo, setNuevo] = useState({ codigo: '', nombre: '' })
+  const [mensaje, setMensaje] = useState('')
+
+  const crear = useMutation({
+    mutationFn: () => pedirAdmin('/admin/catalogos/organos', {
+      method: 'POST',
+      body: JSON.stringify(nuevo),
+    }),
+    onSuccess: () => { setMensaje('Órgano creado'); setNuevo({ codigo: '', nombre: '' }); void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }) },
+    onError: (e) => setMensaje((e as Error).message),
+  })
+
+  const desactivar = useMutation({
     mutationFn: (id: number) => pedirAdmin(`/admin/catalogos/organos/${id}`, { method: 'DELETE' }),
     onSuccess: () => void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }),
   })
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-titulo font-semibold tracking-tight"><span className="rombo" aria-hidden="true">✦</span>Catálogos</h1>
+    <>
       <div aria-live="polite">{mensaje && <p className="text-sm text-vigente-texto">{mensaje}</p>}</div>
+      <form className="panel flex flex-wrap items-end gap-3 p-4"
+        onSubmit={(e) => { e.preventDefault(); crear.mutate() }}>
+        <label className="block flex-1 text-xs font-medium text-ink-soft">
+          Código
+          <input value={nuevo.codigo} onChange={e => setNuevo(o => ({ ...o, codigo: e.target.value.toUpperCase() }))}
+            placeholder="REC" maxLength={10} className="campo mt-1" required />
+        </label>
+        <label className="block flex-[2] text-xs font-medium text-ink-soft">
+          Nombre
+          <input value={nuevo.nombre} onChange={e => setNuevo(o => ({ ...o, nombre: e.target.value }))}
+            placeholder="Rectorado" className="campo mt-1" required />
+        </label>
+        <button disabled={crear.isPending} type="submit" className="btn-primario disabled:opacity-50">
+          {crear.isPending ? 'Creando…' : 'Crear órgano'}
+        </button>
+      </form>
 
       {isError && <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>}
-      {isPending && <p aria-live="polite">Cargando…</p>}
+      {isPending && <p aria-live="polite" className="text-sm text-ink-faint">Cargando…</p>}
 
       {data && (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Catalogo
-            id="tipos"
-            titulo="Tipos de norma"
-            filas={data.tipos}
-            columnas={f => ({ codigo: f.codigo, nombre: f.nombre, alcance: f.alcance, activo: f.activo ? 'activo' : 'inactivo' })}
-            onDesactivar={data.tipos.filter(t => t.activo).length > 1 ? (id) => desactivarTipo.mutate(id) : undefined}
-            formularios={{
-              'Código': <input value={tipoNuevo.codigo} onChange={e => setTipoNuevo(t => ({ ...t, codigo: e.target.value.toUpperCase() }))} className="campo" />,
-              'Nombre': <input value={tipoNuevo.nombre} onChange={e => setTipoNuevo(t => ({ ...t, nombre: e.target.value }))} className="campo" />,
-            }}
-            onCrear={() => crearTipo.mutate()}
-            ocupado={crearTipo.isPending}
-          />
-
-          <Catalogo
-            id="organos"
-            titulo="Órganos emisores"
-            filas={data.organos}
-            columnas={f => ({ codigo: f.codigo, nombre: f.nombre, activo: f.activo ? 'activo' : 'inactivo' })}
-            onDesactivar={(id) => desactivarOrgano.mutate(id)}
-            formularios={{
-              'Código': <input value={organoNuevo.codigo} onChange={e => setOrganoNuevo(o => ({ ...o, codigo: e.target.value.toUpperCase() }))} className="campo" />,
-              'Nombre': <input value={organoNuevo.nombre} onChange={e => setOrganoNuevo(o => ({ ...o, nombre: e.target.value }))} className="campo" />,
-            }}
-            onCrear={() => crearOrgano.mutate()}
-            ocupado={crearOrgano.isPending}
-          />
-
-          <Catalogo
-            id="materias"
-            titulo="Materias (estructura)"
-            filas={data.materias}
-            columnas={f => ({ nombre: f.nombre, slug: f.slug })}
-            formularios={{
-              'Nombre': <input value={materiaNueva.nombre} onChange={e => setMateriaNueva({ nombre: e.target.value })} className="campo" />,
-            }}
-            onCrear={() => crearMateria.mutate()}
-            ocupado={crearMateria.isPending}
-          />
-        </div>
+        <table className="panel w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
+              <th scope="col" className="px-4 py-2.5">Código</th>
+              <th scope="col" className="px-4 py-2.5">Nombre</th>
+              <th scope="col" className="px-4 py-2.5">Estado</th>
+              <th scope="col" className="px-4 py-2.5 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.organos.map(f => (
+              <tr key={f.id} className="border-b border-line last:border-0 hover:bg-verde-50 dark:hover:bg-crema-100/5">
+                <td className="px-4 py-2.5 font-mono text-xs">{f.codigo}</td>
+                <td className="px-4 py-2.5">{f.nombre}</td>
+                <td className={`px-4 py-2.5 text-xs ${f.activo ? 'text-vigente-texto' : 'text-ink-faint'}`}>{f.activo ? 'activo' : 'inactivo'}</td>
+                <td className="px-4 py-2.5 text-right">
+                  {f.activo && (
+                    <button type="button" onClick={() => desactivar.mutate(f.id)} className="text-xs underline text-ink-faint hover:text-ink">
+                      desactivar
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-    </div>
+    </>
   )
 }
 
-function Catalogo<Fila extends { id: number }>({
-  id,
-  titulo,
-  filas,
-  columnas,
-  formularios,
-  onCrear,
-  onDesactivar,
-  ocupado,
-}: {
-  id: string
-  titulo: string
-  filas: Fila[]
-  columnas: (fila: Fila) => Record<string, string>
-  formularios: Record<string, React.ReactNode>
-  onCrear: () => void
-  onDesactivar?: (id: number) => void
-  ocupado: boolean
-}) {
+function SeccionMaterias() {
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: ['admin-catalogos'],
+    queryFn: () => pedirAdmin<CatalogosAdmin>('/admin/catalogos'),
+  })
+
+  const cliente = useQueryClient()
+  const [nombre, setNombre] = useState('')
+  const [mensaje, setMensaje] = useState('')
+
+  const crear = useMutation({
+    mutationFn: () => pedirAdmin('/admin/catalogos/materias', {
+      method: 'POST',
+      body: JSON.stringify({ nombre }),
+    }),
+    onSuccess: () => { setMensaje('Materia creada'); setNombre(''); void cliente.invalidateQueries({ queryKey: ['admin-catalogos'] }) },
+    onError: (e) => setMensaje((e as Error).message),
+  })
+
   return (
-    <section id={id} className="panel ancla-con-header scroll-mt-4 p-4">
-      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>{titulo}</h2>
-      <ul className="mb-4 space-y-1 text-sm">
-        {filas.map(fila => {
-          const valores = columnas(fila as Fila)
-          return (
-            <li key={fila.id} className="flex items-center justify-between gap-2">
-              <span>
-                <span className="font-mono text-xs">{valores.codigo ?? valores.slug}</span>{' '}
-                {valores.nombre}
-                {valores.alcance && <span className="ml-1 text-xs text-ink-faint">({valores.alcance})</span>}
-                {valores.activo && <span className={`ml-2 text-xs ${valores.activo === 'activo' ? 'text-vigente-texto' : 'text-ink-faint'}`}>{valores.activo}</span>}
-              </span>
-              {onDesactivar && valores.activo === 'activo' && (
-                <button type="button" onClick={() => onDesactivar(fila.id)} className="text-xs underline text-ink-faint">
-                  desactivar
-                </button>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-      <form
-        className="space-y-2 border-t border-line pt-3"
-        onSubmit={(e) => { e.preventDefault(); onCrear() }}
-      >
-        {Object.entries(formularios).map(([etiqueta, control]) => (
-          <label key={etiqueta} className="block text-xs">
-            {etiqueta}
-            {control}
-          </label>
-        ))}
-        <button disabled={ocupado} type="submit"
-          className="w-full btn-primario disabled:opacity-50">
-          Crear
+    <>
+      <div aria-live="polite">{mensaje && <p className="text-sm text-vigente-texto">{mensaje}</p>}</div>
+      <form className="panel flex flex-wrap items-end gap-3 p-4"
+        onSubmit={(e) => { e.preventDefault(); crear.mutate() }}>
+        <label className="block flex-[2] text-xs font-medium text-ink-soft">
+          Nombre
+          <input value={nombre} onChange={e => setNombre(e.target.value)}
+            placeholder="Licencias" className="campo mt-1" required />
+        </label>
+        <button disabled={crear.isPending} type="submit" className="btn-primario disabled:opacity-50">
+          {crear.isPending ? 'Creando…' : 'Crear materia'}
         </button>
       </form>
-    </section>
+
+      {isError && <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>}
+      {isPending && <p aria-live="polite" className="text-sm text-ink-faint">Cargando…</p>}
+
+      {data && (
+        <table className="panel w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
+              <th scope="col" className="px-4 py-2.5">Nombre</th>
+              <th scope="col" className="px-4 py-2.5">Slug</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.materias.map(f => (
+              <tr key={f.id} className="border-b border-line last:border-0 hover:bg-verde-50 dark:hover:bg-crema-100/5">
+                <td className="px-4 py-2.5">{f.nombre}</td>
+                <td className="px-4 py-2.5 font-mono text-xs text-ink-faint">{f.slug}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
   )
 }

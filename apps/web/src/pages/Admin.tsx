@@ -76,7 +76,7 @@ export function LayoutAdmin() {
   const ruta = ubicacion.pathname
 
   const grupoNormas = ruta.startsWith('/admin/normas')
-  const grupoCatalogos = ruta === '/admin/catalogos'
+  const grupoCatalogos = ruta.startsWith('/admin/catalogos')
 
   const [abiertas, setAbiertas] = useState<Record<string, boolean>>({
     normas: grupoNormas,
@@ -112,9 +112,9 @@ export function LayoutAdmin() {
           </Rama>
 
           <Rama titulo="Catálogos" icono="✦" abierta={!!abiertas.catalogos} onAlternar={() => alternar('catalogos')} activa={grupoCatalogos}>
-            <Hoja ruta="/admin/catalogos#tipos" activa={false}>Tipos de norma</Hoja>
-            <Hoja ruta="/admin/catalogos#organos" activa={false}>Órganos emisores</Hoja>
-            <Hoja ruta="/admin/catalogos#materias" activa={false}>Materias</Hoja>
+            <Hoja ruta="/admin/catalogos/tipos" activa={ruta === '/admin/catalogos/tipos'}>Tipos de norma</Hoja>
+            <Hoja ruta="/admin/catalogos/organos" activa={ruta === '/admin/catalogos/organos'}>Órganos emisores</Hoja>
+            <Hoja ruta="/admin/catalogos/materias" activa={ruta === '/admin/catalogos/materias'}>Materias</Hoja>
           </Rama>
 
           <HojaSimple ruta="/admin/boletines" icono="▣" activa={ruta === '/admin/boletines'}>Boletines oficiales</HojaSimple>
