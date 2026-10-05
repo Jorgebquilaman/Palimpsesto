@@ -75,6 +75,7 @@ export default function Busqueda() {
   }
 
   const { data: catalogos } = useQuery({ queryKey: ['catalogos'], queryFn: traerCatalogos, staleTime: 60_000 })
+  const { data: resumen } = useQuery({ queryKey: ['resumen-global'], queryFn: () => traerBusqueda(new URLSearchParams()), staleTime: 300_000 })
 
   const { data: sugerencias } = useQuery({
     queryKey: ['sugerencias', textoDebounced],
@@ -416,19 +417,21 @@ export default function Busqueda() {
         </div>
       </main>
 
-      {!q && !numero && !anio && !tipoId && !organoId && !desde && !hasta && !vigencia && (
-        <section aria-label="Accesos rápidos" className="banda-salvia no-print px-4 py-14">
+      <footer className="no-print bg-verde-950 px-4 py-12 text-crema-100">
+        <div className="mx-auto max-w-4xl">
           <h2 className="text-center font-display text-titulo font-semibold tracking-tight">
-            Accesos rápidos
+            El Digesto en números
           </h2>
-          <div className="mx-auto mt-8 grid max-w-4xl gap-6 text-center sm:grid-cols-4">
-            <AccesoRapido icono="◉" titulo="Vigentes" detalle="Las normas de cumplimiento obligatorio hoy" onClick={() => { setFiltrosAbiertos(true); actualizar({ vigencia: 'vigente' }) }} />
-            <AccesoRapido icono="⎙" titulo="Últimas sanciones" detalle="Ordenadas por fecha, las más nuevas primero" onClick={() => actualizar({ orden: 'fecha_desc' })} />
-            <AccesoRapido icono="☰" titulo="Por tipo de norma" detalle="Resoluciones, ordenanzas y más" onClick={() => { setFiltrosAbiertos(true); actualizar({ orden: 'fecha_desc' }) }} />
-            <AccesoRapido icono="⌁" titulo="Boletines oficiales" detalle="Cada publicación con sus normas" ruta="/boletin" />
+          <div className="mt-8 grid gap-8 text-center sm:grid-cols-3">
+            <ResumenPie titulo="Tipo" conteos={resumen?.facetas.tipos ?? null} />
+            <ResumenPie titulo="Órgano emisor" conteos={resumen?.facetas.organos ?? null} />
+            <ResumenPie titulo="Vigencia" conteos={resumen?.facetas.vigencias ?? null} vigencias />
           </div>
-        </section>
-      )}
+          <p className="mt-10 text-center text-xs text-crema-100/50">
+            Digesto Normativo IUPA · Los boletines y normas del instituto
+          </p>
+        </div>
+      </footer>
     </>
   )
 }
@@ -494,18 +497,24 @@ function Paginador({ page, total, pageSize, onCambiar }: { page: number; total: 
   )
 }
 
-function AccesoRapido({ icono, titulo, detalle, onClick, ruta }: { icono: string; titulo: string; detalle: string; onClick?: () => void; ruta?: string }) {
-  const contenido = (
-    <>
-      <span aria-hidden="true" className="text-2xl text-crema-100/90">{icono}</span>
-      <span className="mt-1 font-display text-base font-semibold">{titulo}</span>
-      <span className="text-xs text-crema-100/70">{detalle}</span>
-    </>
-  )
-  const clases = 'flex flex-col items-center gap-1 rounded-md px-3 py-4 transition-colors hover:bg-crema-100/10 focus-visible:bg-crema-100/10'
-  return ruta ? (
-    <Link to={ruta} className={clases}>{contenido}</Link>
-  ) : (
-    <button type="button" onClick={onClick} className={clases}>{contenido}</button>
+function ResumenPie({ titulo, conteos, vigencias = false }: { titulo: string; conteos: { id: number; nombre: string; cantidad: number }[] | null; vigencias?: boolean }) {
+  return (
+    <div>
+      <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-crema-100/60">
+        <span aria-hidden="true" className="rombo mr-1">✦</span>{titulo}
+      </h3>
+      {conteos ? (
+        <ul className="space-y-1.5 text-sm">
+          {conteos.map(c => (
+            <li key={c.id} className="flex items-baseline justify-center gap-2">
+              <span>{vigencias ? (ETIQUETAS_VIGENCIA[c.nombre] ?? c.nombre) : c.nombre}</span>
+              <span className="num-tabulares text-crema-100/60">{c.cantidad}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-crema-100/40">Cargando…</p>
+      )}
+    </div>
   )
 }
