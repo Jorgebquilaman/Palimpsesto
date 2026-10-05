@@ -153,9 +153,9 @@ public partial class AiNormaService : IAiNormaService
             return ResultadoCompletarAi.Falla("La AI devolvió una respuesta que no se pudo interpretar");
         }
 
-        var aplicados = await AplicarDatosAsync(norma, datos, ct);
-        var relacionesCreadas = await CrearRelacionesAsync(norma, datos, ct);
         var advertencias = new List<string>();
+        var aplicados = await AplicarDatosAsync(norma, datos, advertencias, ct);
+        var relacionesCreadas = await CrearRelacionesAsync(norma, datos, ct);
 
         norma.ActualizadoEn = DateTime.UtcNow;
         norma.ActualizadoPor = "ai";
@@ -311,36 +311,56 @@ public partial class AiNormaService : IAiNormaService
         }
     }
 
-    private async Task<List<string>> AplicarDatosAsync(Domain.Entidades.Norma norma, DatosAi datos, CancellationToken ct)
+    private async Task<List<string>> AplicarDatosAsync(Domain.Entidades.Norma norma, DatosAi datos, List<string> advertencias, CancellationToken ct)
     {
         var aplicados = new List<string>();
 
-        if (datos.TipoNormaCodigo is { Length: > 0 } tc)
+        // identidad propuesta (tipo+organo+numero+anio): no puede pisar una norma existente
+        var tipoPropuesto = datos.TipoNormaCodigo is { Length: > 0 } tc0
+            ? await _db.TiposNorma.FirstOrDefaultAsync(t => t.Codigo == tc0.ToUpperInvariant(), ct)
+            : null;
+        var organoPropuesto = datos.OrganoCodigo is { Length: > 0 } oc0
+            ? await _db.OrganosEmisores.FirstOrDefaultAsync(o => o.Codigo == oc0.ToUpperInvariant(), ct)
+            : null;
+        var numeroPropuesto = datos.Numero is { } n0 && n0 > 0 ? n0 : norma.Numero;
+        var anioPropuesto = datos.Anio is { } a0 && a0 >= 1900 ? a0 : norma.Anio;
+
+        if (numeroPropuesto > 0 && tipoPropuesto is not null && organoPropuesto is not null)
         {
-            var tipo = await _db.TiposNorma.FirstOrDefaultAsync(t => t.Codigo == tc.ToUpperInvariant(), ct);
-            if (tipo is not null && tipo.Id != norma.TipoNormaId)
+            var otraMisma = await _db.Normas.FirstOrDefaultAsync(x =>
+                x.Id != norma.Id &&
+                x.TipoNormaId == tipoPropuesto.Id &&
+                x.OrganoEmisorId == organoPropuesto.Id &&
+                x.Numero == numeroPropuesto &&
+                x.Anio == anioPropuesto, ct);
+            if (otraMisma is not null)
             {
-                norma.TipoNormaId = tipo.Id;
-                aplicados.Add("tipo_norma");
+                advertencias.Add($"La identidad {tipoPropuesto.Codigo}-{organoPropuesto.Codigo}-{anioPropuesto}-{numeroPropuesto:0000} ya la tiene {otraMisma.CodigoNormalizado}; no se cambió el número (¿duplicado?). Revisá el listado.");
+                tipoPropuesto = null;
+                organoPropuesto = null;
+                numeroPropuesto = norma.Numero;
+                anioPropuesto = norma.Anio;
             }
         }
-        if (datos.OrganoCodigo is { Length: > 0 } oc)
+
+        if (tipoPropuesto is not null && tipoPropuesto.Id != norma.TipoNormaId)
         {
-            var organo = await _db.OrganosEmisores.FirstOrDefaultAsync(o => o.Codigo == oc.ToUpperInvariant(), ct);
-            if (organo is not null && organo.Id != norma.OrganoEmisorId)
-            {
-                norma.OrganoEmisorId = organo.Id;
-                aplicados.Add("organo");
-            }
+            norma.TipoNormaId = tipoPropuesto.Id;
+            aplicados.Add("tipo_norma");
         }
-        if (datos.Numero is { } n && n > 0)
+        if (organoPropuesto is not null && organoPropuesto.Id != norma.OrganoEmisorId)
         {
-            norma.Numero = n;
+            norma.OrganoEmisorId = organoPropuesto.Id;
+            aplicados.Add("organo");
+        }
+        if (numeroPropuesto is { } np && np > 0 && np != norma.Numero)
+        {
+            norma.Numero = np;
             aplicados.Add("numero");
         }
-        if (datos.Anio is { } a && a >= 1900)
+        if (anioPropuesto is { } ap && ap >= 1900 && ap != norma.Anio)
         {
-            norma.Anio = a;
+            norma.Anio = ap;
             aplicados.Add("anio");
         }
         if (datos.Titulo is { Length: > 3 } t)

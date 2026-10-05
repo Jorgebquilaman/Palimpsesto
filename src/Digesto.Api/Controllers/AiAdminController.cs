@@ -85,12 +85,26 @@ public class AiAdminController : ControllerBase
         Response.Headers.CacheControl = "no-cache";
         var opcionesJson = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
 
-        var resultado = await _aiNorma.CompletarNormaAsync(id, async evento =>
+        ResultadoCompletarAi resultado;
+        try
+        {
+            resultado = await _aiNorma.CompletarNormaAsync(id, async evento =>
+            {
+                await Response.WriteAsync(
+                    System.Text.Json.JsonSerializer.Serialize(new { evento.Etapa, evento.Detalle }, opcionesJson) + "\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
         {
             await Response.WriteAsync(
-                System.Text.Json.JsonSerializer.Serialize(new { evento.Etapa, evento.Detalle }, opcionesJson) + "\n", ct);
-            await Response.Body.FlushAsync(ct);
-        }, ct);
+                System.Text.Json.JsonSerializer.Serialize(new { estado = "error", detalle = ex.Message }, opcionesJson) + "\n", ct);
+            return;
+        }
 
         var final = resultado.Ok
             ? (object)new { estado = "exito", resultado.CamposAplicados, resultado.RelacionesCreadas, resultado.Advertencias }

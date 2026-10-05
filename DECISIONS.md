@@ -341,3 +341,9 @@ El 500 en `GET /admin/ai` era la tabla `configuracion` inexistente: registré la
 **Subida**: `POST /admin/boletines/{id}/pdf` (multipart, PDF hasta 50 MB) — valida tipo/tamaño, guarda con IFileStorage y registra sha256, bytes, nombre y storage_key en columnas nuevas de `boletin` (pdf_nombre/pdf_storage_key/pdf_sha256/pdf_bytes; migración BoletinPdf). Un boletín tiene un único PDF; subir de nuevo lo reemplaza (queda auditado).
 
 **Descarga pública**: `GET /boletines/{numero}/pdf` con range processing; 404 claro si el boletín no tiene PDF. El listado admin expone `tienePdf` para mostrar enlace o botón de subida en la fila.
+
+## AI vs índice de unicidad
+
+**Problema**: al aplicar la identidad deducida (tipo+órgano+número+año), la AI puede chocar con `ix_norma_unicidad` (otra norma ya tiene esa identidad: típico cuando el documento es un duplicado de otro ya cargado) → DbUpdateException → el stream moría sin línea final → "La AI terminó sin responder".
+
+**Fix**: `AplicarDatosAsync` verifica ANTES si otra norma ya tiene esa identidad: si choca, no toca identidad y agrega advertencia al resultado ("ya la tiene RES-REC-2026-0019; ¿duplicado?"). El resto de los campos se aplica igual. Además el endpoint de stream envuelve el servicio en try/catch y SIEMPRE emite la línea final `{estado:"error"}`.
