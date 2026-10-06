@@ -96,6 +96,72 @@ public class AdministracionController : ControllerBase
         await userManager.AddToRoleAsync(usuario, request.Rol);
         return StatusCode(201, new { usuario.UserName, request.Rol });
     }
+
+    [HttpPut("usuarios/{id}")]
+    public async Task<IActionResult> ActualizarUsuario(Guid id, [FromBody] ActualizarUsuarioRequest request, CancellationToken ct)
+    {
+        var userManager = HttpContext.RequestServices.GetRequiredService<UserManager<UsuarioApp>>();
+        var usuario = await userManager.FindByIdAsync(id.ToString());
+        if (usuario is null)
+        {
+            return Problem(statusCode: 404, detail: "No existe ese usuario");
+        }
+
+        var validos = new[] { "admin", "editor", "revisor" };
+        if (!validos.Contains(request.Rol))
+        {
+            return Problem(statusCode: 400, detail: "Rol inválido");
+        }
+
+        usuario.Nombre = request.Nombre;
+        usuario.Email = request.Email;
+        var resultado = await userManager.UpdateAsync(usuario);
+        if (!resultado.Succeeded)
+        {
+            return Problem(statusCode: 400, detail: string.Join("; ", resultado.Errors.Select(e => e.Description)));
+        }
+
+        var rolesActuales = await userManager.GetRolesAsync(usuario);
+        var rolActual = rolesActuales.FirstOrDefault();
+        if (rolActual is null)
+        {
+            await userManager.AddToRoleAsync(usuario, request.Rol);
+        }
+        else if (rolActual != request.Rol)
+        {
+            await userManager.RemoveFromRoleAsync(usuario, rolActual);
+            await userManager.AddToRoleAsync(usuario, request.Rol);
+        }
+
+        return Ok(new { usuario.UserName });
+    }
+
+    [HttpPut("usuarios/{id}/bloqueo")]
+    public async Task<IActionResult> CambiarBloqueo(Guid id, [FromBody] CambiarBloqueoRequest request, CancellationToken ct)
+    {
+        var userManager = HttpContext.RequestServices.GetRequiredService<UserManager<UsuarioApp>>();
+        var usuario = await userManager.FindByIdAsync(id.ToString());
+        if (usuario is null)
+        {
+            return Problem(statusCode: 404, detail: "No existe ese usuario");
+        }
+
+        if (request.Bloqueado && usuario.Id == userManager.GetUserId(User))
+        {
+            return Problem(statusCode: 400, detail: "No podés dar de baja tu propio usuario");
+        }
+
+        usuario.LockoutEnd = request.Bloqueado ? DateTimeOffset.MaxValue : null;
+        var resultado = await userManager.UpdateAsync(usuario);
+        if (!resultado.Succeeded)
+        {
+            return Problem(statusCode: 400, detail: string.Join("; ", resultado.Errors.Select(e => e.Description)));
+        }
+
+        return Ok(new { usuario.UserName, Bloqueado = request.Bloqueado });
+    }
 }
 
 public record CrearUsuarioRequest(string Usuario, string Email, string Nombre, string Contrasenia, string Rol);
+public record ActualizarUsuarioRequest(string Nombre, string Email, string Rol);
+public record CambiarBloqueoRequest(bool Bloqueado);

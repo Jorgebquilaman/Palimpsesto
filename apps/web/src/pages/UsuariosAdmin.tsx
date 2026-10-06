@@ -31,6 +31,8 @@ export default function UsuariosAdmin() {
   })
   const [mensaje, setMensaje] = useState('')
   const [exito, setExito] = useState(false)
+  const [editando, setEditando] = useState<string | null>(null)
+  const [formEdicion, setFormEdicion] = useState({ nombre: '', email: '', rol: 'editor' })
 
   const crear = useMutation({
     mutationFn: () => pedirAdmin('/admin/usuarios', { method: 'POST', body: JSON.stringify(form) }),
@@ -42,6 +44,35 @@ export default function UsuariosAdmin() {
     },
     onError: (e) => { setExito(false); setMensaje((e as Error).message) },
   })
+
+  const guardarEdicion = useMutation({
+    mutationFn: ({ id }: { id: string }) =>
+      pedirAdmin(`/admin/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(formEdicion) }),
+    onSuccess: () => {
+      setEditando(null)
+      setExito(true)
+      setMensaje('Usuario actualizado')
+      void cliente.invalidateQueries({ queryKey: ['admin-usuarios'] })
+    },
+    onError: (e) => { setExito(false); setMensaje((e as Error).message) },
+  })
+
+  const cambiarBloqueo = useMutation({
+    mutationFn: ({ id, bloqueado }: { id: string; bloqueado: boolean }) =>
+      pedirAdmin(`/admin/usuarios/${id}/bloqueo`, { method: 'PUT', body: JSON.stringify({ bloqueado }) }),
+    onSuccess: (_, v) => {
+      setExito(true)
+      setMensaje(v.bloqueado ? 'Usuario dado de baja' : 'Usuario reactivado')
+      void cliente.invalidateQueries({ queryKey: ['admin-usuarios'] })
+    },
+    onError: (e) => { setExito(false); setMensaje((e as Error).message) },
+  })
+
+  const empezarEdicion = (u: UsuarioListado) => {
+    setEditando(u.id)
+    setFormEdicion({ nombre: u.nombre, email: u.email ?? '', rol: u.rol || 'editor' })
+    setMensaje('')
+  }
 
   return (
     <div className="max-w-4xl space-y-5">
@@ -109,30 +140,87 @@ export default function UsuariosAdmin() {
               <th scope="col" className="px-4 py-2.5">Email</th>
               <th scope="col" className="px-4 py-2.5">Rol</th>
               <th scope="col" className="px-4 py-2.5">Estado</th>
+              <th scope="col" className="px-4 py-2.5">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {data.map(u => (
               <tr key={u.id} className="border-b border-line last:border-0 hover:bg-verde-50 dark:hover:bg-crema-100/5">
                 <td className="px-4 py-2.5">
-                  <span className="flex items-center gap-2.5">
-                    <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-verde-900 text-xs font-bold text-crema-50 dark:bg-crema-100/15 dark:text-crema-100">
-                      {(u.nombre || u.userName).trim().charAt(0).toUpperCase()}
+                  {editando === u.id ? (
+                    <span className="flex items-center gap-2">
+                      <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-verde-900 text-xs font-bold text-crema-50 dark:bg-crema-100/15 dark:text-crema-100">
+                        {(u.nombre || u.userName).trim().charAt(0).toUpperCase()}
+                      </span>
+                      <input value={formEdicion.nombre}
+                        onChange={e => setFormEdicion(f => ({ ...f, nombre: e.target.value }))}
+                        aria-label="Nombre" className="campo w-40" required />
                     </span>
-                    <span>
-                      <span className="block font-medium">{u.nombre}</span>
-                      <span className="block font-mono text-xs text-ink-faint">{u.userName}</span>
+                  ) : (
+                    <span className="flex items-center gap-2.5">
+                      <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-verde-900 text-xs font-bold text-crema-50 dark:bg-crema-100/15 dark:text-crema-100">
+                        {(u.nombre || u.userName).trim().charAt(0).toUpperCase()}
+                      </span>
+                      <span>
+                        <span className="block font-medium">{u.nombre}</span>
+                        <span className="block font-mono text-xs text-ink-faint">{u.userName}</span>
+                      </span>
                     </span>
-                  </span>
+                  )}
                 </td>
-                <td className="px-4 py-2.5 text-xs">{u.email ?? '—'}</td>
+                <td className="px-4 py-2.5 text-xs">
+                  {editando === u.id ? (
+                    <input type="email" value={formEdicion.email}
+                      onChange={e => setFormEdicion(f => ({ ...f, email: e.target.value }))}
+                      aria-label="Email" className="campo w-44" />
+                  ) : (u.email ?? '—')}
+                </td>
                 <td className="px-4 py-2.5">
-                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ROL[u.rol] ?? ESTILO_ROL.revisor}`}>
-                    {u.rol}
-                  </span>
+                  {editando === u.id ? (
+                    <select value={formEdicion.rol}
+                      onChange={e => setFormEdicion(f => ({ ...f, rol: e.target.value }))}
+                      aria-label="Rol" className="campo">
+                      <option value="admin">admin</option>
+                      <option value="editor">editor</option>
+                      <option value="revisor">revisor</option>
+                    </select>
+                  ) : (
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ROL[u.rol] ?? ESTILO_ROL.revisor}`}>
+                      {u.rol}
+                    </span>
+                  )}
                 </td>
                 <td className={`px-4 py-2.5 text-xs ${u.bloqueado ? 'text-derogada-texto' : 'text-vigente-texto'}`}>
-                  {u.bloqueado ? 'bloqueado' : 'activo'}
+                  {u.bloqueado ? 'de baja' : 'activo'}
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className="flex flex-wrap items-center gap-2">
+                    {editando === u.id ? (
+                      <>
+                        <button type="button" onClick={() => guardarEdicion.mutate({ id: u.id })}
+                          disabled={guardarEdicion.isPending}
+                          className="btn-primario px-2.5 py-1 text-xs disabled:opacity-50">
+                          {guardarEdicion.isPending ? 'Guardando…' : 'Guardar'}
+                        </button>
+                        <button type="button" onClick={() => { setEditando(null); setMensaje('') }}
+                          className="btn-secundario px-2.5 py-1 text-xs">
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => empezarEdicion(u)}
+                          className="btn-secundario px-2.5 py-1 text-xs">
+                          Editar
+                        </button>
+                        <button type="button" onClick={() => cambiarBloqueo.mutate({ id: u.id, bloqueado: !u.bloqueado })}
+                          disabled={cambiarBloqueo.isPending}
+                          className={`px-2 py-1 text-xs underline-offset-2 hover:underline disabled:opacity-50 ${u.bloqueado ? 'text-vigente-texto' : 'text-derogada-texto'}`}>
+                          {u.bloqueado ? 'Reactivar' : 'Dar de baja'}
+                        </button>
+                      </>
+                    )}
+                  </span>
                 </td>
               </tr>
             ))}
