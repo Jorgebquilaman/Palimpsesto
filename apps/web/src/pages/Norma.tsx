@@ -56,6 +56,7 @@ export default function Norma() {
   const q = parametros.get('q') ?? ''
   const [pestana, setPestana] = useState<(typeof PESTANAS)[number][0]>('texto')
   const [terminoInterior, setTerminoInterior] = useState('')
+  const [indiceAbierto, setIndiceAbierto] = useState(false)
   const [mensaje, setMensaje] = useState('')
 
   const { data: norma, isError } = useQuery({
@@ -229,32 +230,69 @@ export default function Norma() {
                   </div>
                 )}
                 {texto.fragmentos.length > 0 && (
-                <>
-                <aside aria-label="Índice de artículos" className="no-print sticky top-24 max-h-[75vh] overflow-auto self-start rounded-md border border-line bg-surface p-3 shadow-xs">
-                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Índice</h3>
-                  <ol className="space-y-1 text-sm">
-                    {texto.fragmentos.map(f => (
-                      <li key={f.orden}>
-                        <a href={`#fragmento-${f.orden}`} className="block rounded px-1 py-0.5 hover:bg-verde-50">
-                          {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}
-                        </a>
-                      </li>
-                    ))}
-                  </ol>
-                  <label className="mt-3 block text-xs">
-                    Buscar dentro de la norma
-                    <input value={terminoInterior} onChange={(e) => setTerminoInterior(e.target.value)}
-                      className="mt-1 campo"
-                      placeholder="término" />
-                  </label>
-                </aside>
-                <section aria-label="Texto de la norma" className="panel p-6">
-                  <TextoNorma
-                    fragmentos={texto.fragmentos}
-                    terminos={terminoInterior || q}
-                  />
-                </section>
-                </>
+                  <>
+                  {indiceAbierto && (
+                    <div className="no-print fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Índice de artículos">
+                      <button type="button" aria-label="Cerrar índice" onClick={() => setIndiceAbierto(false)} className="absolute inset-0 cursor-default bg-ink/40" />
+                      <div className="absolute inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] max-h-[65vh] overflow-auto rounded-2xl border border-line bg-surface p-4 shadow-xl">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <h3 className="text-xs font-bold uppercase tracking-wide text-ink-faint">Índice</h3>
+                          <button type="button" onClick={() => setIndiceAbierto(false)} aria-label="Convertir en menú flotante"
+                            className="grid h-8 w-8 place-items-center rounded-full bg-verde-900 text-base leading-none text-crema-50 shadow-md transition-colors hover:bg-verde-950">
+                            ↓
+                          </button>
+                        </div>
+                        <ol className="space-y-1 text-sm">
+                          {texto.fragmentos.map(f => (
+                            <li key={f.orden}>
+                              <a href={`#fragmento-${f.orden}`} onClick={() => setIndiceAbierto(false)} className="block rounded px-1 py-0.5 hover:bg-verde-50">
+                                {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}
+                              </a>
+                            </li>
+                          ))}
+                        </ol>
+                        <label className="mt-3 block text-xs">
+                          Buscar dentro de la norma
+                          <input value={terminoInterior} onChange={e => setTerminoInterior(e.target.value)}
+                            className="mt-1.5 w-full rounded-sm border border-line bg-surface px-2 py-1 text-sm" />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIndiceAbierto(true)}
+                    aria-label="Mostrar índice"
+                    className="no-print fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-verde-900 text-crema-50 shadow-lg transition-colors hover:bg-verde-950 md:hidden"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5" aria-hidden="true">
+                      <path d="M3 6h18M3 12h12M3 18h8" />
+                    </svg>
+                  </button>
+                  <aside aria-label="Índice de artículos" className="no-print sticky top-24 hidden max-h-[75vh] overflow-auto self-start rounded-md border border-line bg-surface p-3 shadow-xs md:block">
+                    <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Índice</h3>
+                    <ol className="space-y-1 text-sm">
+                      {texto.fragmentos.map(f => (
+                        <li key={f.orden}>
+                          <a href={`#fragmento-${f.orden}`} className="block rounded px-1 py-0.5 hover:bg-verde-50">
+                            {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}
+                          </a>
+                        </li>
+                      ))}
+                    </ol>
+                    <label className="mt-3 block text-xs">
+                      Buscar dentro de la norma
+                      <input value={terminoInterior} onChange={e => setTerminoInterior(e.target.value)}
+                        className="mt-1.5 w-full rounded-sm border border-line bg-surface px-2 py-1 text-sm" />
+                    </label>
+                  </aside>
+                  <section aria-label="Texto de la norma" className="panel min-w-0 p-4 sm:p-6">
+                    <TextoNorma
+                      fragmentos={texto.fragmentos}
+                      terminos={terminoInterior || q}
+                    />
+                  </section>
+                  </>
                 )}
               </div>
               <footer className="no-print mt-6 border-t border-line pt-3 text-xs text-ink-faint">
