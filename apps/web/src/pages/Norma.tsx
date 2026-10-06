@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import DOMPurify from 'dompurify'
 import {
+  traerCatalogos,
   traerFragmentos,
   traerNorma,
   traerRelaciones,
 } from '../api/cliente'
+import { ETIQUETAS_VIGENCIA } from '../components/etiquetas'
 import { Badge } from '../components/ui'
 import { VisorPdf } from '../components/VisorPdf'
 
@@ -379,9 +381,89 @@ export default function Norma() {
           <p className="mt-6 text-xs text-ink-faint">
             El PDF firmado es el documento oficial; el texto en pantalla es una copia de lectura.
           </p>
+
+          <BarraFiltrosPie />
         </>
       )}
     </main>
+  )
+}
+
+function BarraFiltrosPie() {
+  const navegar = useNavigate()
+  const { data: catalogos } = useQuery({ queryKey: ['catalogos'], queryFn: traerCatalogos, staleTime: 60_000 })
+  const [tipoId, setTipoId] = useState('')
+  const [organoId, setOrganoId] = useState('')
+  const [desde, setDesde] = useState('')
+  const [hasta, setHasta] = useState('')
+  const [vigencia, setVigencia] = useState('')
+
+  function buscar(e: React.FormEvent) {
+    e.preventDefault()
+    const sp = new URLSearchParams()
+    if (tipoId) sp.set('tipoId', tipoId)
+    if (organoId) sp.set('organoId', organoId)
+    if (desde) sp.set('desde', desde)
+    if (hasta) sp.set('hasta', hasta)
+    if (vigencia) sp.set('vigencia', vigencia)
+    navegar(sp.toString() ? `/?${sp.toString()}` : '/')
+  }
+
+  function limpiar() {
+    setTipoId('')
+    setOrganoId('')
+    setDesde('')
+    setHasta('')
+    setVigencia('')
+  }
+
+  return (
+    <section aria-label="Buscar otros documentos" className="no-print panel mt-8 p-4 sm:p-5">
+      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">
+        <span className="rombo" aria-hidden="true">✦</span>Buscar otros documentos
+      </h2>
+      <form onSubmit={buscar} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Tipo</span>
+          <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="campo">
+            <option value="">Todos</option>
+            {(catalogos?.tipos ?? []).map(t => (
+              <option key={t.id} value={t.id}>{t.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Órgano emisor</span>
+          <select value={organoId} onChange={(e) => setOrganoId(e.target.value)} className="campo">
+            <option value="">Todos</option>
+            {(catalogos?.organos ?? []).map(o => (
+              <option key={o.id} value={o.id}>{o.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción desde</span>
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="campo" />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción hasta</span>
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="campo" />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Vigencia</span>
+          <select value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="campo">
+            <option value="">Todas</option>
+            {(catalogos?.vigencias ?? []).map(v => (
+              <option key={v} value={v}>{ETIQUETAS_VIGENCIA[v] ?? v}</option>
+            ))}
+          </select>
+        </label>
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
+          <button type="submit" className="btn-primario">Buscar</button>
+          <button type="button" onClick={limpiar} className="btn-sutil">Limpiar</button>
+        </div>
+      </form>
+    </section>
   )
 }
 
