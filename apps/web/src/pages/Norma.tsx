@@ -21,11 +21,34 @@ const NOMBRE_TIPO: Record<string, string> = {
 }
 
 const PESTANAS = [
-  ['texto', 'Texto'],
-  ['pdf', 'PDF original'],
-  ['relaciones', 'Relaciones'],
-  ['metadatos', 'Metadatos'],
+  ['texto', 'Texto', 'texto'],
+  ['pdf', 'PDF original', 'pdf'],
+  ['relaciones', 'Relaciones', 'relaciones'],
+  ['metadatos', 'Metadatos', 'metadatos'],
 ] as const
+
+function IconoPestana({ solapa }: { solapa: (typeof PESTANAS)[number][0] }) {
+  const comun = {
+    width: 22,
+    height: 22,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.7,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  } as const
+  switch (solapa) {
+    case 'texto':
+      return (<svg {...comun} aria-hidden="true"><path d="M4 4h16v16H4V4Z" /><path d="M8 9h8M8 13h8M8 17h5" /></svg>)
+    case 'pdf':
+      return (<svg {...comun} aria-hidden="true"><path d="M6 2h9l5 5v15H6V2Z" /><path d="M14 2v6h6" /><path d="M12 11v7M8.5 14.5 12 11l3.5 3.5" /></svg>)
+    case 'relaciones':
+      return (<svg {...comun} aria-hidden="true"><circle cx="6" cy="6" r="3" /><circle cx="18" cy="6" r="3" /><circle cx="12" cy="18" r="3" /><path d="M8.4 8.4l2.2 6.3M15.6 8.4l-2.2 6.3M9 6h6" /></svg>)
+    case 'metadatos':
+      return (<svg {...comun} aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="9" cy="6" r="1.6" fill="currentColor" /><circle cx="15" cy="12" r="1.6" fill="currentColor" /><circle cx="7" cy="18" r="1.6" fill="currentColor" /></svg>)
+  }
+}
 
 export default function Norma() {
   const { codigo = '' } = useParams()
@@ -79,7 +102,7 @@ export default function Norma() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
+    <main className="mx-auto max-w-6xl px-4 py-6 pb-24 md:pb-6">
       <Link to={q ? `/?q=${encodeURIComponent(q)}` : '/'} className="text-sm text-ink-faint underline hover:text-ink">
         ← Volver a la búsqueda
       </Link>
@@ -144,7 +167,8 @@ export default function Norma() {
           </header>
 
           <div className="no-print mt-6">
-            <div role="tablist" aria-label="Secciones de la norma" className="flex gap-5 border-b border-line">
+            {/* Solapas tradicionales: solo escritorio */}
+            <div role="tablist" aria-label="Secciones de la norma" className="hidden md:flex gap-5 border-b border-line">
               {PESTANAS.map(([valor, etiqueta]) => (
                 <button
                   key={valor}
@@ -159,7 +183,35 @@ export default function Norma() {
                 </button>
               ))}
             </div>
+            {/* Indicador del menú inferior activo (móvil) */}
+            <div className="md:hidden sr-only" role="status">
+              Viendo: {PESTANAS.find(([v]) => v === pestana)?.[1]}
+            </div>
           </div>
+
+          {/* Menú inferior tipo iPhone: solo móvil */}
+          <nav
+            aria-label="Secciones de la norma"
+            className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+          >
+            <ul className="grid grid-cols-4">
+              {PESTANAS.map(([valor, etiqueta]) => (
+                <li key={valor}>
+                  <button
+                    role="tab"
+                    aria-selected={pestana === valor}
+                    onClick={() => setPestana(valor)}
+                    className={`flex w-full flex-col items-center gap-1 px-1 pb-1.5 pt-2 text-[10px] font-medium transition-colors ${pestana === valor
+                      ? 'text-acento-texto'
+                      : 'text-ink-faint'}`}
+                  >
+                    <IconoPestana solapa={valor} />
+                    {etiqueta}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
           <div className="mt-4">
             {pestana === 'texto' && texto && (
