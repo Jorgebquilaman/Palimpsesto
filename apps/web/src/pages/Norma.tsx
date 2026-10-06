@@ -397,6 +397,8 @@ function BarraFiltrosPie() {
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [vigencia, setVigencia] = useState('')
+  const [numero, setNumero] = useState('')
+  const [anio, setAnio] = useState('')
   const [clipVisible, setClipVisible] = useState(false)
   const [abierto, setAbierto] = useState(false)
   const refSeccion = useRef<HTMLElement>(null)
@@ -428,6 +430,8 @@ function BarraFiltrosPie() {
   function buscar(e: React.FormEvent) {
     e.preventDefault()
     const sp = new URLSearchParams()
+    if (numero) sp.set('numero', numero)
+    if (anio) sp.set('anio', anio)
     if (tipoId) sp.set('tipoId', tipoId)
     if (organoId) sp.set('organoId', organoId)
     if (desde) sp.set('desde', desde)
@@ -438,6 +442,8 @@ function BarraFiltrosPie() {
   }
 
   function limpiar() {
+    setNumero('')
+    setAnio('')
     setTipoId('')
     setOrganoId('')
     setDesde('')
@@ -446,47 +452,74 @@ function BarraFiltrosPie() {
   }
 
   const formulario = (
-    <form onSubmit={buscar} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-      <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-ink-soft">Tipo</span>
-        <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="campo">
-          <option value="">Todos</option>
-          {(catalogos?.tipos ?? []).map(t => (
-            <option key={t.id} value={t.id}>{t.nombre}</option>
-          ))}
-        </select>
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-ink-soft">Órgano emisor</span>
-        <select value={organoId} onChange={(e) => setOrganoId(e.target.value)} className="campo">
-          <option value="">Todos</option>
-          {(catalogos?.organos ?? []).map(o => (
-            <option key={o.id} value={o.id}>{o.nombre}</option>
-          ))}
-        </select>
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción desde</span>
-        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="campo" />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción hasta</span>
-        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="campo" />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-ink-soft">Vigencia</span>
-        <select value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="campo">
-          <option value="">Todas</option>
-          {(catalogos?.vigencias ?? []).map(v => (
-            <option key={v} value={v}>{ETIQUETAS_VIGENCIA[v] ?? v}</option>
-          ))}
-        </select>
-      </label>
-      <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
-        <button type="submit" className="btn-primario">Buscar</button>
-        <button type="button" onClick={limpiar} className="btn-sutil">Limpiar</button>
+    <>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Tipo</span>
+          <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="campo">
+            <option value="">Todos</option>
+            {(catalogos?.tipos ?? []).map(t => (
+              <option key={t.id} value={t.id}>{t.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Órgano emisor</span>
+          <select value={organoId} onChange={(e) => setOrganoId(e.target.value)} className="campo">
+            <option value="">Todos</option>
+            {(catalogos?.organos ?? []).map(o => (
+              <option key={o.id} value={o.id}>{o.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Vigencia</span>
+          <select value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="campo">
+            <option value="">Todas</option>
+            {(catalogos?.vigencias ?? []).map(v => (
+              <option key={v} value={v}>{ETIQUETAS_VIGENCIA[v] ?? v}</option>
+            ))}
+          </select>
+        </label>
       </div>
-    </form>
+      <div className="mt-3 border-t border-line pt-3">
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Cita específica</span>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              value={numero}
+              onChange={(e) => setNumero(e.target.value)}
+              placeholder="N°"
+              aria-label="Número de norma"
+              className="campo num-tabulares flex-1"
+            />
+            <select
+              value={anio}
+              onChange={(e) => setAnio(e.target.value)}
+              aria-label="Año"
+              className="campo num-tabulares w-32"
+            >
+              <option value="">Año</option>
+              {(catalogos?.anios ?? []).map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+        </label>
+      </div>
+      <div className="mt-3 border-t border-line pt-3 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción desde</span>
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="campo" />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción hasta</span>
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="campo" />
+        </label>
+      </div>
+    </>
   )
 
   return (
@@ -495,7 +528,13 @@ function BarraFiltrosPie() {
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">
           <span className="rombo" aria-hidden="true">✦</span>Buscar otros documentos
         </h2>
-        {formulario}
+        <form onSubmit={buscar}>
+          {formulario}
+          <div className="mt-4 flex items-end gap-2">
+            <button type="submit" className="btn-primario">Buscar</button>
+            <button type="button" onClick={limpiar} className="btn-sutil">Limpiar</button>
+          </div>
+        </form>
       </section>
 
       {clipVisible && !abierto && (
@@ -527,7 +566,13 @@ function BarraFiltrosPie() {
                 ×
               </button>
             </div>
-            {formulario}
+            <form onSubmit={buscar}>
+              {formulario}
+              <div className="mt-4 flex items-end gap-2">
+                <button type="submit" className="btn-primario">Buscar</button>
+                <button type="button" onClick={limpiar} className="btn-sutil">Limpiar</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
