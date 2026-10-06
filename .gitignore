@@ -584,3 +584,6 @@ appsettings.Development.json
 
 # Archivos de ingesta local
 archivos/
+
+# Archivos locales grandes
+*.jwpub
