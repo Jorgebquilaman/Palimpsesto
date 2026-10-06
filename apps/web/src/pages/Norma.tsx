@@ -397,6 +397,33 @@ function BarraFiltrosPie() {
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [vigencia, setVigencia] = useState('')
+  const [clipVisible, setClipVisible] = useState(false)
+  const [abierto, setAbierto] = useState(false)
+  const refSeccion = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const seccion = refSeccion.current
+    if (!seccion) return
+    const observador = new IntersectionObserver(
+      ([entrada]) => {
+        if (!entrada) return
+        setClipVisible(!entrada.isIntersecting)
+        if (entrada.isIntersecting) setAbierto(false)
+      },
+      { threshold: 0 },
+    )
+    observador.observe(seccion)
+    return () => observador.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!abierto) return
+    const alTocar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAbierto(false)
+    }
+    window.addEventListener('keydown', alTocar)
+    return () => window.removeEventListener('keydown', alTocar)
+  }, [abierto])
 
   function buscar(e: React.FormEvent) {
     e.preventDefault()
@@ -407,6 +434,7 @@ function BarraFiltrosPie() {
     if (hasta) sp.set('hasta', hasta)
     if (vigencia) sp.set('vigencia', vigencia)
     navegar(sp.toString() ? `/?${sp.toString()}` : '/')
+    setAbierto(false)
   }
 
   function limpiar() {
@@ -417,53 +445,93 @@ function BarraFiltrosPie() {
     setVigencia('')
   }
 
+  const formulario = (
+    <form onSubmit={buscar} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <label className="block text-sm">
+        <span className="mb-1 block text-xs font-medium text-ink-soft">Tipo</span>
+        <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="campo">
+          <option value="">Todos</option>
+          {(catalogos?.tipos ?? []).map(t => (
+            <option key={t.id} value={t.id}>{t.nombre}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-sm">
+        <span className="mb-1 block text-xs font-medium text-ink-soft">Órgano emisor</span>
+        <select value={organoId} onChange={(e) => setOrganoId(e.target.value)} className="campo">
+          <option value="">Todos</option>
+          {(catalogos?.organos ?? []).map(o => (
+            <option key={o.id} value={o.id}>{o.nombre}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-sm">
+        <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción desde</span>
+        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="campo" />
+      </label>
+      <label className="block text-sm">
+        <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción hasta</span>
+        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="campo" />
+      </label>
+      <label className="block text-sm">
+        <span className="mb-1 block text-xs font-medium text-ink-soft">Vigencia</span>
+        <select value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="campo">
+          <option value="">Todas</option>
+          {(catalogos?.vigencias ?? []).map(v => (
+            <option key={v} value={v}>{ETIQUETAS_VIGENCIA[v] ?? v}</option>
+          ))}
+        </select>
+      </label>
+      <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
+        <button type="submit" className="btn-primario">Buscar</button>
+        <button type="button" onClick={limpiar} className="btn-sutil">Limpiar</button>
+      </div>
+    </form>
+  )
+
   return (
-    <section aria-label="Buscar otros documentos" className="no-print panel mt-8 p-4 sm:p-5">
-      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">
-        <span className="rombo" aria-hidden="true">✦</span>Buscar otros documentos
-      </h2>
-      <form onSubmit={buscar} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-medium text-ink-soft">Tipo</span>
-          <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="campo">
-            <option value="">Todos</option>
-            {(catalogos?.tipos ?? []).map(t => (
-              <option key={t.id} value={t.id}>{t.nombre}</option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-medium text-ink-soft">Órgano emisor</span>
-          <select value={organoId} onChange={(e) => setOrganoId(e.target.value)} className="campo">
-            <option value="">Todos</option>
-            {(catalogos?.organos ?? []).map(o => (
-              <option key={o.id} value={o.id}>{o.nombre}</option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción desde</span>
-          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="campo" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción hasta</span>
-          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="campo" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-medium text-ink-soft">Vigencia</span>
-          <select value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="campo">
-            <option value="">Todas</option>
-            {(catalogos?.vigencias ?? []).map(v => (
-              <option key={v} value={v}>{ETIQUETAS_VIGENCIA[v] ?? v}</option>
-            ))}
-          </select>
-        </label>
-        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
-          <button type="submit" className="btn-primario">Buscar</button>
-          <button type="button" onClick={limpiar} className="btn-sutil">Limpiar</button>
+    <>
+      <section ref={refSeccion} aria-label="Buscar otros documentos" className="no-print panel mt-8 p-4 sm:p-5">
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">
+          <span className="rombo" aria-hidden="true">✦</span>Buscar otros documentos
+        </h2>
+        {formulario}
+      </section>
+
+      {clipVisible && !abierto && (
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          aria-haspopup="dialog"
+          aria-expanded={abierto}
+          className="no-print aparece fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-4 z-40 flex items-center gap-2 rounded-full bg-verde-900 px-4 py-2.5 text-sm font-semibold text-crema-50 shadow-lg transition-colors hover:bg-verde-950 md:bottom-6 md:left-auto md:right-4"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          Buscar documento
+        </button>
+      )}
+
+      {abierto && (
+        <div className="no-print fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Buscar otros documentos">
+          <button type="button" aria-label="Cerrar buscador" onClick={() => setAbierto(false)} className="absolute inset-0 cursor-default bg-ink/40" />
+          <div className="aparece absolute inset-x-3 bottom-0 max-h-[80vh] overflow-auto rounded-t-2xl border border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-xl sm:inset-x-auto sm:bottom-6 sm:right-4 sm:w-[40rem] sm:rounded-2xl sm:pb-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-xs font-bold uppercase tracking-wide text-ink-faint">
+                <span className="rombo" aria-hidden="true">✦</span>Buscar otros documentos
+              </h2>
+              <button type="button" onClick={() => setAbierto(false)} aria-label="Cerrar buscador"
+                className="grid h-8 w-8 place-items-center rounded-full bg-verde-900 text-base leading-none text-crema-50 shadow-md transition-colors hover:bg-verde-950">
+                ×
+              </button>
+            </div>
+            {formulario}
+          </div>
         </div>
-      </form>
-    </section>
+      )}
+    </>
   )
 }
 
