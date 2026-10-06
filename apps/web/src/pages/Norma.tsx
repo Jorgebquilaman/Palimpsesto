@@ -216,11 +216,11 @@ export default function Norma() {
           <div className="mt-4">
             {pestana === 'texto' && texto && (
               <>
-              <div className={texto.fragmentos.length > 0 ? "grid gap-4 md:grid-cols-[260px_1fr]" : "grid gap-4"}>
+              <div className="grid gap-4 grid-cols-[minmax(0,1fr)] md:grid-cols-[260px_1fr]">
                 {norma.resumen && (
-                  <section aria-label="Resumen de la norma" className="panel p-5 md:col-span-2">
+                  <section aria-label="Resumen de la norma" className="panel min-w-0 p-4 sm:p-5 md:col-span-2">
                     <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Resumen</h2>
-                    <p className="font-lectura text-[15px] leading-relaxed">{norma.resumen}</p>
+                    <p className="font-lectura wrap-anywhere text-[15px] leading-relaxed sm:text-base">{norma.resumen}</p>
                   </section>
                 )}
                 {texto.fragmentos.length === 0 && (
@@ -405,7 +405,7 @@ function TextoNorma({ fragmentos, terminos }: { fragmentos: { orden: number; pag
         <article key={f.orden} id={`fragmento-${f.orden}`} data-page={f.paginaDesde ?? undefined}>
           {f.html
             ? <div className="texto-norma prose-sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(f.html) }} />
-            : <p className="whitespace-pre-wrap text-sm">{f.texto}</p>}
+            : <p className="wrap-anywhere whitespace-pre-wrap text-sm">{f.texto}</p>}
           {f.paginaDesde && (
             <p className="mt-1 text-right text-[10px] text-ink-faint">
               página {f.paginaDesde}{f.paginaHasta && f.paginaHasta !== f.paginaDesde ? `–${f.paginaHasta}` : ''}
