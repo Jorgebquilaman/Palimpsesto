@@ -2,25 +2,44 @@ const BASE = '/api/v1'
 
 const TOKEN_CLAVE = 'digesto-accessToken'
 
-function leerClave(clave: string): string | null {
+function almacenamientos(): Storage[] {
+  const lista: Storage[] = []
   try {
-    return window.localStorage.getItem(clave)
+    lista.push(window.sessionStorage)
   } catch {
-    return null
   }
+  try {
+    lista.push(window.localStorage)
+  } catch {
+  }
+  return lista
 }
 
-function escribirClave(clave: string, valor: string) {
+function leerClave(clave: string): string | null {
+  for (const almacen of almacenamientos()) {
+    try {
+      const valor = almacen.getItem(clave)
+      if (valor !== null) return valor
+    } catch {
+    }
+  }
+  return null
+}
+
+function escribirClave(clave: string, valor: string, persistente = true) {
+  const destino = persistente ? 'localStorage' : 'sessionStorage'
   try {
-    window.localStorage.setItem(clave, valor)
+    window[destino].setItem(clave, valor)
   } catch {
   }
 }
 
 function borrarClave(clave: string) {
-  try {
-    window.localStorage.removeItem(clave)
-  } catch {
+  for (const almacen of almacenamientos()) {
+    try {
+      almacen.removeItem(clave)
+    } catch {
+    }
   }
 }
 
@@ -28,10 +47,10 @@ export function tokenActual(): string | null {
   return leerClave(TOKEN_CLAVE)
 }
 
-export function guardarToken(token: string, nombre: string, rol: string) {
-  escribirClave(TOKEN_CLAVE, token)
-  escribirClave('digestoNombre', nombre)
-  escribirClave('digestoRol', rol)
+export function guardarToken(token: string, nombre: string, rol: string, recordar = true) {
+  escribirClave(TOKEN_CLAVE, token, recordar)
+  escribirClave('digestoNombre', nombre, recordar)
+  escribirClave('digestoRol', rol, recordar)
 }
 
 export function cerrarSesion() {

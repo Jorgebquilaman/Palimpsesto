@@ -14,6 +14,8 @@ export default function Admin() {
 function Login() {
   const [usuario, setUsuario] = useState('')
   const [contrasenia, setContrasenia] = useState('')
+  const [verContrasenia, setVerContrasenia] = useState(false)
+  const [recordar, setRecordar] = useState(true)
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
@@ -36,7 +38,7 @@ function Login() {
         return
       }
       const datos = await respuesta.json()
-      guardarToken(datos.token, datos.nombre, datos.rol)
+      guardarToken(datos.token, datos.nombre, datos.rol, recordar)
       window.location.assign('/admin/normas')
     } catch {
       setError('No se pudo conectar con el servidor. Verificá que el sistema esté corriendo.')
@@ -46,24 +48,103 @@ function Login() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm items-center px-4">
-      <form onSubmit={iniciar} className="w-full space-y-3 panel p-6">
-        <h1 className="text-xl font-bold">Backoffice — Digesto IUPA</h1>
-        <label className="block text-sm">
-          Usuario
-          <input value={usuario} onChange={(e) => setUsuario(e.target.value)} autoFocus required
-            className="mt-1 campo" />
+    <main
+      className="no-print flex min-h-screen items-center justify-center bg-verde-950 px-4 py-10"
+      style={{
+        backgroundImage: 'url(/firma-iupa.jpeg)',
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+      }}
+    >
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 bg-verde-950/55" />
+
+      <form
+        onSubmit={iniciar}
+        className="relative w-full max-w-sm rounded-3xl border border-crema-100/40 bg-crema-100/15 p-8 text-crema-100 shadow-2xl backdrop-blur-xl"
+      >
+        <img src="/logo-iupa.svg" alt="IUPA" width={160} height={44} className="mx-auto h-9 w-auto" />
+        <h1 className="mt-5 text-center font-display text-2xl font-semibold">Iniciar sesión</h1>
+        <p className="mt-1 text-center text-sm text-crema-100/80">
+          Te damos la bienvenida, ingresá a tu cuenta
+        </p>
+
+        <label className="mt-6 block text-sm">
+          <span className="sr-only">Nombre de usuario</span>
+          <span className="flex items-center gap-2 rounded-full border border-crema-100/50 bg-verde-950/20 px-4 py-2.5 backdrop-blur-sm focus-within:border-crema-100">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5" />
+            </svg>
+            <input
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              autoFocus
+              required
+              placeholder="Nombre de usuario"
+              autoComplete="username"
+              className="w-full bg-transparent text-crema-100 placeholder:text-crema-100/60 focus:outline-none"
+            />
+          </span>
         </label>
-        <label className="block text-sm">
-          Contraseña
-          <input type="password" value={contrasenia} onChange={(e) => setContrasenia(e.target.value)} required
-            className="mt-1 campo" />
+
+        <label className="mt-3 block text-sm">
+          <span className="sr-only">Contraseña</span>
+          <span className="flex items-center gap-2 rounded-full border border-crema-100/50 bg-verde-950/20 px-4 py-2.5 backdrop-blur-sm focus-within:border-crema-100">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="4" y="10" width="16" height="11" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            <input
+              type={verContrasenia ? 'text' : 'password'}
+              value={contrasenia}
+              onChange={(e) => setContrasenia(e.target.value)}
+              required
+              placeholder="Contraseña"
+              autoComplete="current-password"
+              className="w-full bg-transparent text-crema-100 placeholder:text-crema-100/60 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setVerContrasenia(v => !v)}
+              aria-label={verContrasenia ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              title={verContrasenia ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              className="text-crema-100/70 hover:text-crema-100"
+            >
+              {verContrasenia ? (
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M2 12s3.5-6 10-6c2.4 0 4.4.8 6 2M22 12s-3.5 6-10 6c-2.4 0-4.4-.8-6-2" />
+                  <path d="M3 3l18 18" />
+                </svg>
+              ) : (
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+                  <circle cx="12" cy="12" r="2.5" />
+                </svg>
+              )}
+            </button>
+          </span>
         </label>
-        {error && <p role="alert" className="text-sm text-derogada-texto">{error}</p>}
+
+        <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-crema-100/90">
+          <input
+            type="checkbox"
+            checked={recordar}
+            onChange={(e) => setRecordar(e.target.checked)}
+            className="h-4 w-4 rounded accent-[#d6865b]"
+          />
+          Recuérdame
+        </label>
+
+        {error && <p role="alert" className="mt-3 rounded-md bg-[var(--derogada)]/30 px-3 py-2 text-sm text-crema-100">{error}</p>}
+
         <button type="submit" disabled={cargando}
-          className="w-full btn-primario disabled:opacity-50">
+          className="btn-acento mt-5 w-full disabled:opacity-50">
           {cargando ? 'Ingresando…' : 'Ingresar'}
         </button>
+
+        <p className="mt-4 text-center text-xs text-crema-100/70">
+          Backoffice del Digesto Normativo IUPA
+        </p>
       </form>
     </main>
   )
