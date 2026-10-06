@@ -203,22 +203,22 @@ export function LayoutAdmin() {
         <p className="mb-4 px-4 text-xs text-crema-100/50">{sesion.nombre} · {sesion.rol}</p>
 
         <nav aria-label="Menú del backoffice" className="flex-1 px-2 text-sm">
-          <Rama titulo="Normas" icono="☰" abierta={!!abiertas.normas} onAlternar={() => alternar('normas')} activa={grupoNormas}>
+          <Rama titulo="Normas" icono={<Icono nombre="normas" />} abierta={!!abiertas.normas} onAlternar={() => alternar('normas')} activa={grupoNormas}>
             <Hoja ruta="/admin/normas" activa={ruta === '/admin/normas'}>Listado y carga de PDFs</Hoja>
             <Hoja ruta="/admin/normas#procesos" activa={false}>Procesos de ingesta</Hoja>
           </Rama>
 
-          <Rama titulo="Catálogos" icono="✦" abierta={!!abiertas.catalogos} onAlternar={() => alternar('catalogos')} activa={grupoCatalogos}>
+          <Rama titulo="Catálogos" icono={<Icono nombre="catalogos" />} abierta={!!abiertas.catalogos} onAlternar={() => alternar('catalogos')} activa={grupoCatalogos}>
             <Hoja ruta="/admin/catalogos/tipos" activa={ruta === '/admin/catalogos/tipos'}>Tipos de norma</Hoja>
             <Hoja ruta="/admin/catalogos/organos" activa={ruta === '/admin/catalogos/organos'}>Órganos emisores</Hoja>
             <Hoja ruta="/admin/catalogos/materias" activa={ruta === '/admin/catalogos/materias'}>Materias</Hoja>
           </Rama>
 
-          <HojaSimple ruta="/admin/boletines" icono="▣" activa={ruta === '/admin/boletines'}>Boletines oficiales</HojaSimple>
-          <HojaSimple ruta="/admin/ai" icono="✦" activa={ruta === '/admin/ai'}>Inteligencia artificial</HojaSimple>
-          <HojaSimple ruta="/admin/auditoria" icono="❝" activa={ruta === '/admin/auditoria'}>Auditoría</HojaSimple>
-          <HojaSimple ruta="/admin/perfil" icono="●" activa={ruta === '/admin/perfil'}>Mi perfil</HojaSimple>
-          <HojaSimple ruta="/admin/usuarios" icono="◉" activa={ruta === '/admin/usuarios'}>Usuarios y roles</HojaSimple>
+          <HojaSimple ruta="/admin/boletines" icono={<Icono nombre="boletines" />} activa={ruta === '/admin/boletines'}>Boletines oficiales</HojaSimple>
+          <HojaSimple ruta="/admin/ai" icono={<Icono nombre="ai" />} activa={ruta === '/admin/ai'}>Inteligencia artificial</HojaSimple>
+          <HojaSimple ruta="/admin/auditoria" icono={<Icono nombre="auditoria" />} activa={ruta === '/admin/auditoria'}>Auditoría</HojaSimple>
+          <HojaSimple ruta="/admin/perfil" icono={<Icono nombre="perfil" />} activa={ruta === '/admin/perfil'}>Mi perfil</HojaSimple>
+          <HojaSimple ruta="/admin/usuarios" icono={<Icono nombre="usuarios" />} activa={ruta === '/admin/usuarios'}>Usuarios y roles</HojaSimple>
         </nav>
 
         <div className="px-4 py-4 text-sm">
@@ -258,6 +258,35 @@ export function LayoutAdmin() {
   )
 }
 
+function Icono({ nombre }: { nombre: 'normas' | 'catalogos' | 'boletines' | 'ai' | 'auditoria' | 'perfil' | 'usuarios' }) {
+  const comun = {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  } as const
+  switch (nombre) {
+    case 'normas':
+      return (<svg {...comun} aria-hidden="true"><path d="M6 2h9l5 5v15H6V2Z" /><path d="M14 2v6h6" /><path d="M9 13h7M9 17h7" /></svg>)
+    case 'catalogos':
+      return (<svg {...comun} aria-hidden="true"><path d="M3 3v7l9 9 7-7-9-9H3Z" /><circle cx="7.5" cy="7.5" r="1.2" /></svg>)
+    case 'boletines':
+      return (<svg {...comun} aria-hidden="true"><path d="M5 3h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V3Z" /><path d="M19 17v2a2 2 0 0 1-2 2H5" /><path d="M9 8h6M9 12h6" /></svg>)
+    case 'ai':
+      return (<svg {...comun} aria-hidden="true"><path d="M12 2c.7 4.8 3.2 7.3 8 8-4.8.7-7.3 3.2-8 8-.7-4.8-3.2-7.3-8-8 4.8-.7 7.3-3.2 8-8Z" /><path d="M19 3v4M21 5h-4" /></svg>)
+    case 'auditoria':
+      return (<svg {...comun} aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4a3 3 0 0 1 6 0" /><path d="m9.5 14 2 2 3.5-4" /></svg>)
+    case 'perfil':
+      return (<svg {...comun} aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5" /></svg>)
+    case 'usuarios':
+      return (<svg {...comun} aria-hidden="true"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" /><path d="M16 5a3.5 3.5 0 0 1 0 6.8M18.5 14.7c2 .8 3 2.3 3 4.3" /></svg>)
+  }
+}
+
 function Rama({
   titulo,
   icono,
@@ -267,7 +296,7 @@ function Rama({
   children,
 }: {
   titulo: string
-  icono: string
+  icono: React.ReactNode
   abierta: boolean
   onAlternar: () => void
   activa: boolean
@@ -311,7 +340,7 @@ function Hoja({ ruta, activa, children }: { ruta: string; activa: boolean; child
   )
 }
 
-function HojaSimple({ ruta, icono, activa, children }: { ruta: string; icono: string; activa: boolean; children: React.ReactNode }) {
+function HojaSimple({ ruta, icono, activa, children }: { ruta: string; icono: React.ReactNode; activa: boolean; children: React.ReactNode }) {
   return (
     <div className="mb-1">
       <Link
