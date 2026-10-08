@@ -1,4 +1,5 @@
 using Digesto.Application.Busquedas;
+using Digesto.Application.Normas;
 using Digesto.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,17 +13,20 @@ public class NormasController : ControllerBase
 {
     private readonly IBuscadorNormas _buscador;
     private readonly ISugerenciasNormas _sugerencias;
+    private readonly IPalabrasClaveNormas _palabrasClave;
     private readonly Digesto.Infrastructure.Persistencia.DigestoDbContext _db;
     private readonly Digesto.Application.Archivos.IFileStorage _fileStorage;
 
     public NormasController(
         IBuscadorNormas buscador,
         ISugerenciasNormas sugerencias,
+        IPalabrasClaveNormas palabrasClave,
         Digesto.Infrastructure.Persistencia.DigestoDbContext db,
         Digesto.Application.Archivos.IFileStorage fileStorage)
     {
         _buscador = buscador;
         _sugerencias = sugerencias;
+        _palabrasClave = palabrasClave;
         _db = db;
         _fileStorage = fileStorage;
     }
@@ -38,6 +42,7 @@ public class NormasController : ControllerBase
         [FromQuery] string? vigencia,
         [FromQuery] string? q,
         [FromQuery] string modo = "todas",
+        [FromQuery] string? palabra = null,
         [FromQuery] string orden = "relevancia",
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -50,35 +55,57 @@ public class NormasController : ControllerBase
             _ => ModoBusqueda.Todas,
         };
 
-        Domain.Enums.Vigencia? vigenciaFiltro = vigencia switch
-        {
-            "vigente" => Domain.Enums.Vigencia.Vigente,
-            "modificada" => Domain.Enums.Vigencia.Modificada,
-            "derogada" => Domain.Enums.Vigencia.Derogada,
-            "derogada_parcialmente" => Domain.Enums.Vigencia.DerogadaParcialmente,
-            "deja_sin_efecto" => Domain.Enums.Vigencia.DejaSinEfecto,
-            _ => null,
-        };
-
         var filtros = new FiltrosBusqueda(
             q, modoBusqueda, numero, anio, tipoId, organoId, desde, hasta,
-            vigenciaFiltro, orden, Math.Max(1, page), pageSize);
+            VigenciaDesdeTexto(vigencia), orden, Math.Max(1, page), pageSize,
+            string.IsNullOrWhiteSpace(palabra) ? null : palabra.Trim());
 
         var resultado = await _buscador.BuscarAsync(filtros, ct);
         return Ok(resultado);
     }
+
+    [HttpGet("palabras-clave")]
+    public async Task<IActionResult> PalabrasClave(
+        [FromQuery] int? tipoId,
+        [FromQuery] int? organoId,
+        [FromQuery] DateOnly? desde,
+        [FromQuery] DateOnly? hasta,
+        [FromQuery] short? anio,
+        [FromQuery] string? vigencia,
+        [FromQuery] string? q,
+        [FromQuery] int limite = 60,
+        [FromQuery] int offset = 0,
+        CancellationToken ct = default)
+    {
+        var resultado = await _palabrasClave.AgregarAsync(
+            tipoId, organoId, desde, hasta, anio, VigenciaDesdeTexto(vigencia), q, limite, offset, ct);
+        return Ok(new
+        {
+            palabras = resultado.Palabras.Select(p => new { palabra = p.Palabra, cantidad = p.Cantidad }),
+            hayMas = resultado.HayMas,
+        });
+    }
+
+    private static Domain.Enums.Vigencia? VigenciaDesdeTexto(string? vigencia) => vigencia switch
+    {
+        "vigente" => Domain.Enums.Vigencia.Vigente,
+        "modificada" => Domain.Enums.Vigencia.Modificada,
+        "derogada" => Domain.Enums.Vigencia.Derogada,
+        "derogada_parcialmente" => Domain.Enums.Vigencia.DerogadaParcialmente,
+        "deja_sin_efecto" => Domain.Enums.Vigencia.DejaSinEfecto,
+        _ => null,
+    };
 
     [HttpGet("normas/{codigo}")]
     public async Task<IActionResult> Detalle(string codigo, CancellationToken ct)
     {
         var norma = await _db.Normas
             .AsNoTracking()
+            .Where(NormaFilters.Published)
             .Include(n => n.TipoNorma)
             .Include(n => n.OrganoEmisor)
             .Include(n => n.Boletin)
-            .Where(n => n.CodigoNormalizado == codigo.ToUpperInvariant()
-                        && n.Visibilidad == Visibilidad.Publica
-                        && (n.EstadoPublicacion == EstadoPublicacion.Publicada || n.EstadoPublicacion == EstadoPublicacion.Archivada))
+            .Where(n => n.CodigoNormalizado == codigo.ToUpperInvariant())
             .Select(n => new
             {
                 n.Id,
@@ -115,9 +142,8 @@ public class NormasController : ControllerBase
     {
         var normaId = await _db.Normas
             .AsNoTracking()
-            .Where(n => n.CodigoNormalizado == codigo.ToUpperInvariant()
-                        && n.Visibilidad == Visibilidad.Publica
-                        && (n.EstadoPublicacion == EstadoPublicacion.Publicada || n.EstadoPublicacion == EstadoPublicacion.Archivada))
+            .Where(NormaFilters.Published)
+            .Where(n => n.CodigoNormalizado == codigo.ToUpperInvariant())
             .Select(n => (Guid?)n.Id)
             .FirstOrDefaultAsync(ct);
 
@@ -150,8 +176,8 @@ public class NormasController : ControllerBase
     {
         var normaId = await _db.Normas
             .AsNoTracking()
-            .Where(n => n.CodigoNormalizado == codigo.ToUpperInvariant()
-                        && n.Visibilidad == Visibilidad.Publica)
+            .Where(NormaFilters.Published)
+            .Where(n => n.CodigoNormalizado == codigo.ToUpperInvariant())
             .Select(n => (Guid?)n.Id)
             .FirstOrDefaultAsync(ct);
 
@@ -163,7 +189,8 @@ public class NormasController : ControllerBase
         var origen = await _db.NormasRelaciones
             .AsNoTracking()
             .Where(r => r.NormaOrigenId == normaId)
-            .Join(_db.Normas, r => r.NormaDestinoId, n => n.Id, (r, n) => new
+            .Join(_db.Normas.AsNoTracking().Where(NormaFilters.Published),
+                r => r.NormaDestinoId, n => n.Id, (r, n) => new
             {
                 direccion = "saliente",
                 tipo = r.Tipo.ToString().ToLowerInvariant(),
@@ -175,7 +202,8 @@ public class NormasController : ControllerBase
         var destino = await _db.NormasRelaciones
             .AsNoTracking()
             .Where(r => r.NormaDestinoId == normaId)
-            .Join(_db.Normas, r => r.NormaOrigenId, n => n.Id, (r, n) => new
+            .Join(_db.Normas.AsNoTracking().Where(NormaFilters.Published),
+                r => r.NormaOrigenId, n => n.Id, (r, n) => new
             {
                 direccion = "entrante",
                 tipo = r.Tipo.ToString().ToLowerInvariant(),
@@ -190,12 +218,11 @@ public class NormasController : ControllerBase
     [HttpGet("normas/{codigo}/pdf")]
     public async Task<IActionResult> Pdf(string codigo, [FromHeader(Name = "Range")] string? range, CancellationToken ct)
     {
-        var archivo = await _db.NormasArchivos
+        var archivo = await _db.Normas
             .AsNoTracking()
-            .Where(a => a.Norma.CodigoNormalizado == codigo.ToUpperInvariant()
-                        && a.Norma.Visibilidad == Visibilidad.Publica
-                        && (a.Norma.EstadoPublicacion == EstadoPublicacion.Publicada || a.Norma.EstadoPublicacion == EstadoPublicacion.Archivada)
-                        && a.Rol == RolArchivo.Original)
+            .Where(NormaFilters.Published)
+            .Where(n => n.CodigoNormalizado == codigo.ToUpperInvariant())
+            .SelectMany(n => n.Archivos.Where(a => a.Rol == RolArchivo.Original))
             .Select(a => new { a.StorageKey, a.NombreOriginal })
             .FirstOrDefaultAsync(ct);
 

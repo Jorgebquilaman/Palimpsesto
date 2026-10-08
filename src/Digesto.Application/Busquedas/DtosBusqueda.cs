@@ -14,7 +14,8 @@ public record FiltrosBusqueda(
     Domain.Enums.Vigencia? Vigencia,
     string? Orden,
     int Page,
-    int PageSize);
+    int PageSize,
+    string? Palabra = null);
 
 public class ItemResultado
 {

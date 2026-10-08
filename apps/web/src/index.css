@@ -162,6 +162,27 @@
   .num-tabulares {
     font-variant-numeric: tabular-nums;
   }
+
+  .react-flow__attribution {
+    background: transparent !important;
+    color: var(--text-faint);
+    font-size: 10px;
+  }
+  .react-flow__controls-button {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .react-flow__controls-button:hover {
+    background: var(--verde-50);
+  }
+  .dark .react-flow__controls-button:hover {
+    background: rgb(238 221 204 / 0.08);
+  }
+  .react-flow__edge-text {
+    fill: var(--text-muted);
+    font-size: 10px;
+  }
 }
 
 @layer components {

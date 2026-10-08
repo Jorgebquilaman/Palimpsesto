@@ -49,6 +49,9 @@ export function Cabecera() {
           <EnlacePanel ruta="/boletin" activa={esActiva('/boletin')}>
             Boletín
           </EnlacePanel>
+          <EnlacePanel ruta="/explorar" activa={esActiva('/explorar')}>
+            Explorar
+          </EnlacePanel>
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <button

@@ -41,6 +41,7 @@ public static class DependenciasDigesto
         services.AddScoped<PipelineIngesta>();
         services.AddScoped<Application.Busquedas.IBuscadorNormas, BuscadorNormas>();
         services.AddScoped<Application.Busquedas.ISugerenciasNormas, SugerenciasNormas>();
+        services.AddScoped<Application.Busquedas.IPalabrasClaveNormas, PalabrasClaveNormas>();
 
         services.AddHttpClient("deepseek");
         services.AddScoped<Application.Ai.IConfiguracionAi, Ai.ConfiguracionAiEf>();

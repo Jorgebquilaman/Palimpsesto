@@ -89,6 +89,7 @@ public class BuscadorNormas : IBuscadorNormas
                 filtros.Desde,
                 filtros.Hasta,
                 filtros.Vigencia,
+                filtros.Palabra,
                 filtros.Orden,
             }));
             pLog.Add("@total", total);
@@ -272,6 +273,11 @@ public class BuscadorNormas : IBuscadorNormas
         {
             where += "\n  AND n.vigencia = @vigencia";
             p.Add("@vigencia", (int)filtros.Vigencia);
+        }
+        if (!string.IsNullOrWhiteSpace(filtros.Palabra))
+        {
+            where += "\n  AND n.palabras_clave @> @palabra";
+            p.Add("@palabra", new[] { filtros.Palabra.Trim() });
         }
 
         var with = "";

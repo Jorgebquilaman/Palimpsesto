@@ -128,6 +128,9 @@ export default function Busqueda() {
               <Link to="/boletin" className="btn-acento">
                 Ver boletín oficial
               </Link>
+              <Link to="/explorar" className="rounded-full border border-crema-100/30 px-5 py-2.5 text-sm font-medium text-crema-100 transition-colors hover:bg-crema-100/10">
+                Explorar por grafo
+              </Link>
               <a href="#formulario-busqueda" className="rounded-full border border-crema-100/30 px-5 py-2.5 text-sm font-medium text-crema-100 transition-colors hover:bg-crema-100/10">
                 Buscar una norma
               </a>

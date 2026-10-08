@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { Cabecera } from './components/Cabecera'
 import Busqueda from './pages/Busqueda'
+import Explorar from './pages/Explorar'
 import Norma from './pages/Norma'
 import Boletin from './pages/Boletin'
 import Styleguide from './pages/Styleguide'
@@ -45,6 +46,7 @@ export default function App() {
       <Routes>
         <Route element={<EnPantallaPublica />}>
           <Route path="/" element={<Busqueda />} />
+          <Route path="/explorar" element={<Explorar />} />
           <Route path="/normas/:codigo" element={<Norma />} />
           <Route path="/boletin" element={<Boletin />} />
           <Route path="/boletines/:numero" element={<Boletin />} />

@@ -25,6 +25,16 @@ export interface FacetaConteo {
   cantidad: number
 }
 
+export interface PalabraClaveConteo {
+  palabra: string
+  cantidad: number
+}
+
+export interface ResultadoPalabrasClave {
+  palabras: PalabraClaveConteo[]
+  hayMas: boolean
+}
+
 export interface Facetas {
   tipos: FacetaConteo[]
   organos: FacetaConteo[]
@@ -105,6 +115,26 @@ export function traerSugerencias(q: string): Promise<{ codigo: string; titulo: s
   return pedir(`/sugerencias?q=${encodeURIComponent(q)}`)
 }
 
+export function traerPalabrasClave(parametros: {
+  tipoId?: string
+  organoId?: string
+  desde?: string
+  hasta?: string
+  anio?: string
+  vigencia?: string
+  q?: string
+  limite?: number
+  offset?: number
+}): Promise<ResultadoPalabrasClave> {
+  const sp = new URLSearchParams()
+  for (const [clave, valor] of Object.entries(parametros)) {
+    if (valor === undefined || valor === null || valor === '') continue
+    sp.set(clave, String(valor))
+  }
+  const qs = sp.toString()
+  return pedir(`/palabras-clave${qs ? `?${qs}` : ''}`)
+}
+
 export function construirConsultaBusqueda(parametros: {
   q?: string
   modo?: string
@@ -115,6 +145,7 @@ export function construirConsultaBusqueda(parametros: {
   desde?: string
   hasta?: string
   vigencia?: string
+  palabra?: string
   orden?: string
   page?: number
   pageSize?: number
