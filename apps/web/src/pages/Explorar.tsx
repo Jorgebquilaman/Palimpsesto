@@ -14,6 +14,9 @@ import {
 
 type Seleccion =
   | { kind: 'tipo' }
+  | { kind: 'organo'; id: string }
+  | { kind: 'anio'; id: string }
+  | { kind: 'vigencia'; id: string }
   | { kind: 'palabra'; id: string }
   | { kind: 'norma'; id: string }
   | { kind: 'relacion'; id: string; origen: string; tipoRelacion: string }
@@ -55,39 +58,52 @@ export default function Explorar() {
     }
   }, [resumen, tipoId, setParametros])
 
-  function actualizar(cambios: Record<string, string | undefined>, conservarPalabra = false) {
+  function fijar(cambios: Record<string, string | undefined>, borrar: string[], conSeleccion: Seleccion | null = null) {
     const nuevos = new URLSearchParams(parametros)
     for (const [clave, valor] of Object.entries(cambios)) {
       if (valor === undefined || valor === '') nuevos.delete(clave)
       else nuevos.set(clave, valor)
     }
-    if (!conservarPalabra && !('palabra' in cambios)) nuevos.delete('palabra')
+    for (const clave of borrar) nuevos.delete(clave)
     setParametros(nuevos)
-  }
-
-  function reiniciarExpansion() {
     setLimitePalabras(60)
     setTamanoNormas(20)
     setExpandidos([])
     setRelaciones({})
-    setSeleccion(null)
+    setSeleccion(conSeleccion)
   }
 
-  function cambiarFiltros(cambios: Record<string, string | undefined>) {
-    actualizar(cambios)
-    reiniciarExpansion()
+  function elegirTipo(id: string) {
+    fijar({ tipoId: id }, ['organoId', 'anio', 'vigencia', 'palabra'], { kind: 'tipo' })
+  }
+
+  function elegirOrgano(id: string | undefined) {
+    fijar({ organoId: id }, ['anio', 'vigencia', 'palabra'], id ? { kind: 'organo', id } : null)
+  }
+
+  function elegirAnio(a: string | undefined) {
+    fijar({ anio: a }, ['vigencia', 'palabra'], a ? { kind: 'anio', id: a } : null)
+  }
+
+  function elegirVigencia(v: string | undefined) {
+    fijar({ vigencia: v }, ['palabra'], v ? { kind: 'vigencia', id: v } : null)
   }
 
   function elegirPalabra(p: string | undefined) {
-    actualizar({ palabra: p }, true)
-    setTamanoNormas(20)
-    setExpandidos([])
-    setRelaciones({})
-    setSeleccion(p ? { kind: 'palabra', id: p } : null)
+    fijar({ palabra: p }, [], p ? { kind: 'palabra', id: p } : null)
+  }
+
+  function cambiarFechas(cambios: Record<string, string | undefined>) {
+    const nuevos = new URLSearchParams(parametros)
+    for (const [clave, valor] of Object.entries(cambios)) {
+      if (valor === undefined || valor === '') nuevos.delete(clave)
+      else nuevos.set(clave, valor)
+    }
+    setParametros(nuevos)
   }
 
   function limpiarFiltros() {
-    cambiarFiltros({ organoId: undefined, anio: undefined, desde: undefined, hasta: undefined, vigencia: undefined })
+    fijar({ organoId: undefined, anio: undefined, desde: undefined, hasta: undefined, vigencia: undefined }, ['palabra'])
   }
 
   async function alternarRelaciones(codigo: string) {
@@ -131,23 +147,79 @@ export default function Explorar() {
     placeholderData: (anterior) => anterior,
   })
 
+  const consultaOrganos = useMemo(
+    () => construirConsultaBusqueda({ tipoId, desde, hasta, pageSize: 1 }),
+    [tipoId, desde, hasta],
+  )
+  const { data: datosOrganos } = useQuery({
+    queryKey: ['explorar-facetas', consultaOrganos],
+    queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaOrganos), signal),
+    enabled: !!tipoId,
+    placeholderData: (anterior) => anterior,
+  })
+
+  const consultaAnios = useMemo(
+    () => construirConsultaBusqueda({ tipoId, organoId, desde, hasta, pageSize: 1 }),
+    [tipoId, organoId, desde, hasta],
+  )
+  const { data: datosAnios } = useQuery({
+    queryKey: ['explorar-facetas', consultaAnios],
+    queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaAnios), signal),
+    enabled: !!tipoId && !!organoId,
+    placeholderData: (anterior) => anterior,
+  })
+
+  const consultaVigencias = useMemo(
+    () => construirConsultaBusqueda({ tipoId, organoId, anio, desde, hasta, pageSize: 1 }),
+    [tipoId, organoId, anio, desde, hasta],
+  )
+  const { data: datosVigencias } = useQuery({
+    queryKey: ['explorar-facetas', consultaVigencias],
+    queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaVigencias), signal),
+    enabled: !!tipoId && !!organoId && !!anio,
+    placeholderData: (anterior) => anterior,
+  })
+
   const tipoNombre = catalogos?.tipos.find(t => String(t.id) === tipoId)?.nombre ?? ''
   const tipoCantidad = resumen?.facetas.tipos.find(t => String(t.id) === tipoId)?.cantidad ?? 0
+  const organos = useMemo(
+    () => (datosOrganos?.facetas.organos ?? []).map(o => ({ id: o.id, nombre: o.nombre, cantidad: o.cantidad })),
+    [datosOrganos],
+  )
+  const anios = useMemo(
+    () => (datosAnios?.facetas.anios ?? []).map(a => ({ anio: a.id, cantidad: a.cantidad })),
+    [datosAnios],
+  )
+  const vigencias = useMemo(
+    () => (datosVigencias?.facetas.vigencias ?? []).map(v => ({ vigencia: v.nombre, cantidad: v.cantidad })),
+    [datosVigencias],
+  )
 
   const normaSeleccionada = seleccion?.kind === 'norma' || seleccion?.kind === 'relacion' ? seleccion.id : null
+  const organoNombre = organos.find(o => String(o.id) === organoId)?.nombre ?? ''
+  const vigenciaNombre = vigencia ? (ETIQUETAS_VIGENCIA[vigencia] ?? vigencia) : ''
 
   const datos: DatosGrafo = useMemo(() => ({
     tipo: tipoId ? { nombre: tipoNombre || 'Tipo', cantidad: tipoCantidad } : null,
+    organos,
+    organoSeleccionado: organoId,
+    anios: organoId ? anios : [],
+    anioSeleccionado: anio,
+    vigencias: anio ? vigencias : [],
+    vigenciaSeleccionada: vigencia,
     palabras: datosPalabras?.palabras ?? [],
     palabraSeleccionada: palabra,
     normas: palabra ? (datosNormas?.items ?? []) : [],
     normaSeleccionada,
     relaciones,
     expandidos,
-  }), [tipoId, tipoNombre, tipoCantidad, datosPalabras, palabra, datosNormas, normaSeleccionada, relaciones, expandidos])
+  }), [tipoId, tipoNombre, tipoCantidad, organos, organoId, anios, anio, vigencias, vigencia, datosPalabras, palabra, datosNormas, normaSeleccionada, relaciones, expandidos])
 
   const claveFiltros = [tipoId, organoId, anio, desde, hasta, vigencia].join('|')
   const claveEncuadre = [
+    organos.length, organoId,
+    anios.length, anio,
+    vigencias.length, vigencia,
     datos.palabras.length,
     datos.palabraSeleccionada,
     datos.normas.length,
@@ -173,8 +245,8 @@ export default function Explorar() {
           <span className="rombo" aria-hidden="true">✦</span>Explorar por grafo
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-          Recorré los documentos desde el tipo de norma, pasando por las palabras clave hasta cada norma y sus relaciones.
-          Tocá un nodo para verlo, doble tocá una norma para mostrar sus relaciones.
+          Recorré los documentos desde el tipo de norma, pasando por órgano emisor, año, vigencia y palabras clave
+          hasta cada norma y sus relaciones. Tocá un nodo para verlo, doble tocá una norma para mostrar sus relaciones.
         </p>
       </header>
 
@@ -184,7 +256,7 @@ export default function Explorar() {
             <button
               key={t.id}
               type="button"
-              onClick={() => cambiarFiltros({ tipoId: String(t.id) })}
+              onClick={() => elegirTipo(String(t.id))}
               aria-pressed={String(t.id) === tipoId}
               className={`chip ${String(t.id) === tipoId ? 'chip-activo' : ''}`}
             >
@@ -192,41 +264,14 @@ export default function Explorar() {
             </button>
           ))}
         </div>
-        <div className="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-ink-soft">Órgano emisor</span>
-            <select value={organoId} onChange={(e) => cambiarFiltros({ organoId: e.target.value || undefined })} className="campo">
-              <option value="">Todos</option>
-              {(catalogos?.organos ?? []).map(o => (
-                <option key={o.id} value={o.id}>{o.nombre}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-ink-soft">Año</span>
-            <select value={anio} onChange={(e) => cambiarFiltros({ anio: e.target.value || undefined })} className="campo num-tabulares">
-              <option value="">Todos</option>
-              {(catalogos?.anios ?? []).map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          </label>
+        <div className="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción desde</span>
-            <input type="date" value={desde} onChange={(e) => cambiarFiltros({ desde: e.target.value || undefined })} className="campo" />
+            <input type="date" value={desde} onChange={(e) => cambiarFechas({ desde: e.target.value || undefined })} className="campo" />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-medium text-ink-soft">Sanción hasta</span>
-            <input type="date" value={hasta} onChange={(e) => cambiarFiltros({ hasta: e.target.value || undefined })} className="campo" />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-ink-soft">Vigencia</span>
-            <select value={vigencia} onChange={(e) => cambiarFiltros({ vigencia: e.target.value || undefined })} className="campo">
-              <option value="">Todas</option>
-              {(catalogos?.vigencias ?? []).map(v => (
-                <option key={v} value={v}>{ETIQUETAS_VIGENCIA[v] ?? v}</option>
-              ))}
-            </select>
+            <input type="date" value={hasta} onChange={(e) => cambiarFechas({ hasta: e.target.value || undefined })} className="campo" />
           </label>
         </div>
         <div className="mt-3">
@@ -238,6 +283,9 @@ export default function Explorar() {
         <section aria-label="Grafo de documentos" className="panel min-w-0 overflow-hidden">
           <p className="num-tabulares border-b border-line px-4 py-2 text-xs text-ink-soft" aria-live="polite">
             {tipoNombre || '…'}
+            {organoNombre && <> <span aria-hidden="true"> › </span> {organoNombre}</>}
+            {anio && <> <span aria-hidden="true"> › </span> {anio}</>}
+            {vigenciaNombre && <> <span aria-hidden="true"> › </span> {vigenciaNombre}</>}
             {palabra && <> <span aria-hidden="true"> › </span> {palabra}</>}
             {normaSeleccionada && <> <span aria-hidden="true"> › </span> {normaSeleccionada}</>}
           </p>
@@ -255,6 +303,10 @@ export default function Explorar() {
                 key={claveFiltros}
                 datos={datos}
                 claveEncuadre={claveEncuadre}
+                onTipo={() => setSeleccion({ kind: 'tipo' })}
+                onOrgano={(id) => elegirOrgano(id)}
+                onAnio={(a) => elegirAnio(a)}
+                onVigencia={(v) => elegirVigencia(v)}
                 onPalabra={(p) => elegirPalabra(p)}
                 onNorma={(codigo) => setSeleccion({ kind: 'norma', id: codigo })}
                 onRelacion={(codigo, origen, tipoRelacion) => setSeleccion({ kind: 'relacion', id: codigo, origen, tipoRelacion })}
@@ -319,6 +371,45 @@ export default function Explorar() {
                   Ocultar normas
                 </button>
               )}
+            </div>
+          )}
+          {seleccion?.kind === 'organo' && (
+            <div className="text-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Órgano emisor</p>
+              <p className="mt-0.5 font-semibold">{organoNombre || seleccion.id}</p>
+              <p className="num-tabulares mt-1 text-ink-soft">
+                {organos.find(o => String(o.id) === seleccion.id)?.cantidad ?? 0} normas
+              </p>
+              <p className="mt-2 text-ink-soft">Elegí un año del grafo para seguir recorriendo.</p>
+              <button type="button" onClick={() => elegirOrgano(undefined)} className="btn-sutil mt-3">
+                Quitar órgano
+              </button>
+            </div>
+          )}
+          {seleccion?.kind === 'anio' && (
+            <div className="text-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Año de sanción</p>
+              <p className="num-tabulares mt-0.5 text-lg font-bold">{seleccion.id}</p>
+              <p className="num-tabulares mt-1 text-ink-soft">
+                {anios.find(a => String(a.anio) === seleccion.id)?.cantidad ?? 0} normas
+              </p>
+              <p className="mt-2 text-ink-soft">Elegí una vigencia del grafo para seguir recorriendo.</p>
+              <button type="button" onClick={() => elegirAnio(undefined)} className="btn-sutil mt-3">
+                Quitar año
+              </button>
+            </div>
+          )}
+          {seleccion?.kind === 'vigencia' && (
+            <div className="text-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Vigencia</p>
+              <div className="mt-1"><Badge vigencia={seleccion.id} /></div>
+              <p className="num-tabulares mt-1 text-ink-soft">
+                {vigencias.find(v => v.vigencia === seleccion.id)?.cantidad ?? 0} normas
+              </p>
+              <p className="mt-2 text-ink-soft">Elegí una palabra clave del grafo para ver sus normas.</p>
+              <button type="button" onClick={() => elegirVigencia(undefined)} className="btn-sutil mt-3">
+                Quitar vigencia
+              </button>
             </div>
           )}
           {seleccion?.kind === 'norma' && normaDetalle && (
