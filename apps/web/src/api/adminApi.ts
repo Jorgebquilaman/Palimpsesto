@@ -43,6 +43,21 @@ function borrarClave(clave: string) {
   }
 }
 
+export const EVENTO_SESION_EXPIRADA = 'digesto:sesion-expirada'
+
+function avisarSesionExpirada() {
+  try {
+    window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA))
+  } catch {
+  }
+}
+
+function sesionExpirada(mensaje = 'Sesión expirada: iniciá sesión de nuevo'): Error {
+  cerrarSesion()
+  avisarSesionExpirada()
+  return new Error(mensaje)
+}
+
 export function tokenActual(): string | null {
   return leerClave(TOKEN_CLAVE)
 }
@@ -80,8 +95,7 @@ export async function pedirAdmin<T>(ruta: string, opciones: RequestInit = {}): P
     },
   })
   if (respuesta.status === 401) {
-    cerrarSesion()
-    throw new Error('Sesión expirada: iniciá sesión de nuevo')
+    throw sesionExpirada()
   }
   if (!respuesta.ok) {
     const detalle = await respuesta.text().catch(() => '')
@@ -246,6 +260,10 @@ export function completarConAiStream(
         method: 'POST',
         headers: { Authorization: `Bearer ${tokenActual() ?? ''}` },
       })
+      if (respuesta.status === 401) {
+        rechazar(sesionExpirada())
+        return
+      }
       if (!respuesta.ok || !respuesta.body) {
         rechazar(new Error(`Error ${respuesta.status}`))
         return
@@ -296,6 +314,9 @@ export async function subirPdfBoletin(id: number, archivo: File): Promise<unknow
     headers: { Authorization: 'Bearer ' + (tokenActual() ?? '') },
     body: datos,
   })
+  if (respuesta.status === 401) {
+    throw sesionExpirada()
+  }
   if (!respuesta.ok) {
     const cuerpo = await respuesta.json().catch(() => null)
     throw new Error(cuerpo?.detail ?? 'No se pudo subir el PDF')

@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
-import { cerrarSesion, guardarToken, sesionActual } from '../api/adminApi'
+import { EVENTO_SESION_EXPIRADA, cerrarSesion, guardarToken, sesionActual } from '../api/adminApi'
 
 export default function Admin() {
-  const sesion = sesionActual()
+  const [expirada, setExpirada] = useState(false)
+  useEffect(() => {
+    const alExpirar = () => setExpirada(true)
+    window.addEventListener(EVENTO_SESION_EXPIRADA, alExpirar)
+    return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alExpirar)
+  }, [])
+  const sesion = expirada ? null : sesionActual()
   if (!sesion) {
     return <Login />
   }
@@ -225,7 +231,7 @@ export function LayoutAdmin() {
           <Link to="/" className="block rounded-sm px-2 py-1.5 text-crema-100/70 transition-colors hover:bg-crema-100/5 hover:text-crema-100">
             ← Volver al sitio público
           </Link>
-          <button onClick={() => { cerrarSesion(); navegar('/admin') }}
+          <button onClick={() => { cerrarSesion(); navegar('/') }}
             className="mt-1 block w-full rounded-sm px-2 py-1.5 text-left text-crema-100/70 transition-colors hover:bg-crema-100/5 hover:text-crema-100">
             Salir
           </button>
@@ -242,7 +248,7 @@ export function LayoutAdmin() {
       <div className={"transition-[padding] duration-200 " + (menuOculto ? "md:pl-0" : "md:pl-60")}>
         <div className="no-print flex items-center gap-3 border-b border-line px-4 py-3 md:hidden">
           <Link to="/" className="font-display font-semibold text-verde-900">Digesto IUPA</Link>
-          <button onClick={() => { cerrarSesion(); navegar('/admin') }} className="ml-auto text-sm text-ink-soft underline">Salir</button>
+          <button onClick={() => { cerrarSesion(); navegar('/') }} className="ml-auto text-sm text-ink-soft underline">Salir</button>
         </div>
         <nav aria-label="Navegación del backoffice (chica)" className="no-print flex gap-4 overflow-x-auto border-b border-line px-4 py-2 text-sm md:hidden">
           <Link to="/admin/normas">Normas</Link>
