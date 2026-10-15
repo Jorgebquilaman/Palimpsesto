@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
+import { traerCatalogos } from '../api/cliente'
 
 export function Cabecera() {
   const [elevada, setElevada] = useState(false)
@@ -49,9 +51,7 @@ export function Cabecera() {
           <EnlacePanel ruta="/boletin" activa={esActiva('/boletin')}>
             Boletín
           </EnlacePanel>
-          <EnlacePanel ruta="/explorar" activa={esActiva('/explorar')}>
-            Explorar
-          </EnlacePanel>
+          <MenuExplorar activo={esActiva('/explorar')} />
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <button
@@ -68,6 +68,71 @@ export function Cabecera() {
         </div>
       </div>
     </header>
+  )
+}
+
+function MenuExplorar({ activo }: { activo: boolean }) {
+  const [abierto, setAbierto] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const { data: catalogos } = useQuery({ queryKey: ['catalogos'], queryFn: traerCatalogos, staleTime: 60_000 })
+
+  useEffect(() => {
+    if (!abierto) return
+    const alPresionar = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setAbierto(false)
+    }
+    const alTecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAbierto(false)
+    }
+    document.addEventListener('pointerdown', alPresionar)
+    document.addEventListener('keydown', alTecla)
+    return () => {
+      document.removeEventListener('pointerdown', alPresionar)
+      document.removeEventListener('keydown', alTecla)
+    }
+  }, [abierto])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        onClick={() => setAbierto(a => !a)}
+        className={`rounded-full px-3 py-1.5 transition-colors ${
+          activo
+            ? 'bg-verde-100 font-semibold text-verde-900 dark:bg-crema-100/10 dark:text-crema-100'
+            : 'text-ink-soft hover:bg-verde-100/60 hover:text-ink dark:hover:bg-crema-100/5'
+        }`}
+      >
+        Explorar <span aria-hidden="true" className={`ml-0.5 inline-block text-[10px] transition-transform ${abierto ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      {abierto && (
+        <div role="menu" aria-label="Explorar por órgano emisor" className="panel absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-72 overflow-auto p-1.5">
+          <Link role="menuitem" to="/explorar" onClick={() => setAbierto(false)}
+            className="block rounded-sm px-3 py-2 text-sm font-semibold transition-colors hover:bg-verde-100/60 hover:text-ink dark:hover:bg-crema-100/5">
+            <span aria-hidden="true" className="rombo mr-1">✦</span>Explorar por grafo
+          </Link>
+          <p aria-hidden="true" className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+            Órganos emisores
+          </p>
+          {(catalogos?.organos ?? []).length === 0 && (
+            <p className="px-3 py-1.5 text-sm text-ink-faint">Cargando…</p>
+          )}
+          {(catalogos?.organos ?? []).map(o => (
+            <Link
+              key={o.id}
+              role="menuitem"
+              to={`/?organoId=${o.id}`}
+              onClick={() => setAbierto(false)}
+              className="block rounded-sm px-3 py-1.5 text-sm text-ink-soft transition-colors hover:bg-verde-100/60 hover:text-ink dark:hover:bg-crema-100/5"
+            >
+              {o.nombre}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
