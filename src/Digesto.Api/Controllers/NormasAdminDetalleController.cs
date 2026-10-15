@@ -402,6 +402,11 @@ public class NormasAdminDetalleController : ControllerBase
             return Problem(statusCode: 404, detail: "Norma no encontrada");
         }
 
+        var procesos = await _db.ProcesosIngesta
+            .Where(p => p.NormaId == id)
+            .ToListAsync(ct);
+        _db.ProcesosIngesta.RemoveRange(procesos);
+
         var relaciones = await _db.NormasRelaciones
             .Where(r => r.NormaOrigenId == id || r.NormaDestinoId == id)
             .ToListAsync(ct);

@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Digesto.Api\Digesto.Api.csproj" />
     <ProjectReference Include="..\..\src\Digesto.Application\Digesto.Application.csproj" />
     <ProjectReference Include="..\..\src\Digesto.Domain\Digesto.Domain.csproj" />
     <ProjectReference Include="..\..\src\Digesto.Infrastructure\Digesto.Infrastructure.csproj" />
