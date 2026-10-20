@@ -212,6 +212,7 @@ function armarRed(
 }
 
 const CAMPOS_PALABRAS = ['q', 'tipoId', 'organoId', 'desde', 'hasta', 'anio', 'vigencia'] as const
+const CAMPOS_FILTROS = ['q', 'numero', 'anio', 'tipoId', 'organoId', 'desde', 'hasta', 'vigencia', 'palabra'] as const
 
 export default function MapaBusqueda({
   consulta,
@@ -227,6 +228,11 @@ export default function MapaBusqueda({
   const [vista, setVista] = useState<'mapa' | 'red'>('mapa')
   const navegar = useNavigate()
 
+  const hayFiltros = useMemo(() => {
+    const sp = new URLSearchParams(consulta)
+    return CAMPOS_FILTROS.some(campo => !!sp.get(campo))
+  }, [consulta])
+
   const parametrosPalabras = useMemo((): Record<string, string> => {
     const sp = new URLSearchParams(consulta)
     const datos: Record<string, string> = { limite: '12' }
@@ -240,7 +246,7 @@ export default function MapaBusqueda({
   const { data: palabras } = useQuery({
     queryKey: ['mapa-palabras', consulta],
     queryFn: () => traerPalabrasClave(parametrosPalabras),
-    enabled: vista === 'mapa',
+    enabled: vista === 'mapa' && hayFiltros,
     placeholderData: (anterior) => anterior,
   })
 
@@ -261,7 +267,7 @@ export default function MapaBusqueda({
       })
       return Object.fromEntries(await Promise.all(pedidos))
     },
-    enabled: vista === 'red',
+    enabled: vista === 'red' && hayFiltros,
     placeholderData: (anterior) => anterior,
   })
 
@@ -303,11 +309,22 @@ export default function MapaBusqueda({
         </div>
       </div>
       <p className="border-b border-line px-4 py-2 text-xs text-ink-faint">
-        {vista === 'mapa'
-          ? 'Hacé clic en una palabra clave para filtrar los resultados.'
-          : 'Las normas publicadas de la búsqueda y sus relaciones; las reservadas no aparecen.'}
+        {!hayFiltros
+          ? 'La vista aparece cuando la búsqueda tiene filtros o palabra.'
+          : vista === 'mapa'
+            ? 'Hacé clic en una palabra clave para filtrar los resultados.'
+            : 'Las normas publicadas de la búsqueda y sus relaciones; las reservadas no aparecen.'}
       </p>
       <div className="h-[70vh] min-h-[540px] rounded-b-lg" role="application" aria-label={vista === 'mapa' ? 'Mapa conceptual' : 'Red conceptual'}>
+        {!hayFiltros ? (
+          <div className="grid h-full place-items-center p-6 text-center">
+            <div>
+              <p className="rombo text-2xl text-acento" aria-hidden="true">✦</p>
+              <p className="mt-2 text-sm font-medium text-ink-soft">Todavía no hay nada filtrado.</p>
+              <p className="mt-1 text-xs text-ink-faint">Escribí una palabra, elegí un tipo o ajustá los filtros para generar la vista visual.</p>
+            </div>
+          </div>
+        ) : (
         <ReactFlow
           nodes={modelo.nodos}
           edges={modelo.aristas}
@@ -327,6 +344,7 @@ export default function MapaBusqueda({
           <Controls />
           <Encuadrar clave={`${vista}:${consulta}:${disposicion}`} />
         </ReactFlow>
+        )}
       </div>
     </section>
   )
