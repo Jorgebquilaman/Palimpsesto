@@ -4,7 +4,8 @@ namespace Digesto.Domain.Reglas;
 /// Arma el código normalizado público de una norma a partir de sus metadatos.
 /// Formato: TIPO-ORGANO-ANIO-NUMERO (número rellenado a 4 dígitos).
 /// Solo aplica cuando la norma tiene número (> 0); los borradores sin número
-/// conservan el código autonumérico temporal con el que fueron cargados.
+/// conservan el código autonumérico temporal con el que fueron cargados, y se
+/// reasigna en el nuevo espacio si cambia tipo/órgano/año.
 /// </summary>
 public static class CodigoNormalizador
 {

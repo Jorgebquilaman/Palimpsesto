@@ -215,6 +215,22 @@ export default function RevisionNorma() {
 
   const codigoNormalizado = normaa?.codigoNormalizado ?? ''
 
+  const tipoElegido = (catalogue?.tipos ?? []).find(t => t.id === (formulario.tipoNormaId ?? normaa?.tipoNormaId))
+  const organoElegido = (catalogue?.organos ?? []).find(o => o.id === (formulario.organoEmisorId ?? normaa?.organoEmisorId))
+  const numeroReal = formulario.numero ?? normaa?.numero ?? 0
+  const anioReal = formulario.anio ?? normaa?.anio ?? 0
+  const cambioIdentificacion = !!normaa && (
+    (formulario.tipoNormaId ?? normaa.tipoNormaId) !== normaa.tipoNormaId ||
+    (formulario.organoEmisorId ?? normaa.organoEmisorId) !== normaa.organoEmisorId ||
+    (formulario.anio ?? normaa.anio) !== normaa.anio)
+  const codigoPrevisto = tipoElegido && organoElegido && anioReal > 0
+    ? (numeroReal > 0
+      ? `${tipoElegido.codigo}-${organoElegido.codigo}-${anioReal}-${String(numeroReal).padStart(4, '0')}`
+      : cambioIdentificacion
+        ? `${tipoElegido.codigo}-${organoElegido.codigo}-${anioReal}-#### (se asigna el próximo número disponible al guardar)`
+        : null)
+    : null
+
   const { data: estadoAi } = useQuery({
     queryKey: ['ai-estado'],
     queryFn: pedirAiEstado,
@@ -322,6 +338,11 @@ export default function RevisionNorma() {
             className="panel p-4"
           >
             <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint"><span className="rombo" aria-hidden="true">✦</span>Metadatos (sugeridos: corregí antes de publicar)</h2>
+            {codigoPrevisto && (
+              <p className="mb-3 text-sm text-ink-faint" aria-live="polite">
+                Código previsto: <strong className="text-ink">{codigoPrevisto}</strong>
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <label className="col-span-2 block">
                 Título

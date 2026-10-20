@@ -149,6 +149,8 @@ public class NormasAdminDetalleController : ControllerBase
             norma.EstadoPublicacion,
         });
 
+        var identidadOriginal = (norma.TipoNormaId, norma.OrganoEmisorId, norma.Anio);
+
         if (request.Titulo is { Length: > 0 }) norma.Titulo = request.Titulo[..Math.Min(500, request.Titulo.Length)];
         if (request.Numero is { } numero) norma.Numero = numero;
         if (request.Anio is { } anio) norma.Anio = anio;
@@ -163,21 +165,30 @@ public class NormasAdminDetalleController : ControllerBase
         if (request.Visibilidad is { } vis) norma.Visibilidad = vis;
         if (request.Vigencia is { } vig) norma.Vigencia = vig;
 
+        var tipo = await _db.TiposNorma.AsNoTracking().FirstAsync(t => t.Id == norma.TipoNormaId, ct);
+        var organo = await _db.OrganosEmisores.AsNoTracking().FirstAsync(o => o.Id == norma.OrganoEmisorId, ct);
+
         if (norma.Numero > 0)
         {
+            var espacio = $"{tipo.Codigo}-{organo.Codigo}-{norma.Anio}-";
             var codigo = Domain.Reglas.CodigoNormalizador.Armar(
-                norma.TipoNorma.Codigo, norma.OrganoEmisor.Codigo, norma.Anio, norma.Numero);
+                tipo.Codigo, organo.Codigo, norma.Anio, norma.Numero);
             if (codigo != norma.CodigoNormalizado)
             {
                 var otraMisma = await _db.Normas.AnyAsync(x =>
                     x.Id != norma.Id && x.CodigoNormalizado == codigo, ct);
                 if (otraMisma)
                 {
+                    var proximo = await ProximoNumeroLibreAsync(espacio, ct);
                     return Problem(statusCode: 409,
-                        detail: $"Ya existe una norma con el código {codigo}; revisá número/año/tipo/órgano (¿duplicado?)");
+                        detail: $"Ya existe una norma con el código {codigo}; el próximo número libre para este tipo/órgano/año es {proximo}");
                 }
                 norma.CodigoNormalizado = codigo;
             }
+        }
+        else if ((norma.TipoNormaId, norma.OrganoEmisorId, norma.Anio) != identidadOriginal)
+        {
+            norma.CodigoNormalizado = await RegenerarCodigoTemporalAsync(tipo.Codigo, organo.Codigo, norma.Anio, ct);
         }
 
         norma.ActualizadoEn = DateTime.UtcNow;
@@ -214,7 +225,39 @@ public class NormasAdminDetalleController : ControllerBase
         {
             return Problem(statusCode: 409, detail: "Ya existe una norma con ese tipo, órgano, número y año");
         }
-        return Ok(new { norma.Id, norma.EstadoPublicacion });
+        return Ok(new { norma.Id, norma.EstadoPublicacion, norma.CodigoNormalizado });
+    }
+
+    private async Task<int> ProximoNumeroLibreAsync(string espacio, CancellationToken ct)
+    {
+        var codigos = await _db.Normas
+            .Where(n => n.CodigoNormalizado.StartsWith(espacio))
+            .Select(n => n.CodigoNormalizado)
+            .ToListAsync(ct);
+        var usados = codigos
+            .Select(c => int.TryParse(c[espacio.Length..], out var v) ? v : 0)
+            .Where(v => v > 0)
+            .ToHashSet();
+        var numero = 1;
+        while (usados.Contains(numero))
+        {
+            numero++;
+        }
+        return numero;
+    }
+
+    private async Task<string> RegenerarCodigoTemporalAsync(string codigoTipo, string codigoOrgano, short anio, CancellationToken ct)
+    {
+        var espacio = $"{codigoTipo}-{codigoOrgano}-{anio}-";
+        var codigos = await _db.Normas
+            .Where(n => n.CodigoNormalizado.StartsWith(espacio))
+            .Select(n => n.CodigoNormalizado)
+            .ToListAsync(ct);
+        var maximo = codigos
+            .Select(c => int.TryParse(c[espacio.Length..], out var v) ? v : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+        return $"{espacio}{(maximo + 1):D4}";
     }
 
     [HttpGet("{id:guid}/pdf")]
