@@ -324,6 +324,14 @@ export default function MapaBusqueda({
               <p className="mt-1 text-xs text-ink-faint">Escribí una palabra, elegí un tipo o ajustá los filtros para generar la vista visual.</p>
             </div>
           </div>
+        ) : normas.length === 0 ? (
+          <div className="grid h-full place-items-center p-6 text-center">
+            <div>
+              <p className="rombo text-2xl text-acento" aria-hidden="true">✦</p>
+              <p className="mt-2 text-sm font-medium text-ink-soft">Ninguna norma coincide con los filtros.</p>
+              <p className="mt-1 text-xs text-ink-faint">Probá con otra palabra o quitá filtros.</p>
+            </div>
+          </div>
         ) : (
         <ReactFlow
           nodes={modelo.nodos}

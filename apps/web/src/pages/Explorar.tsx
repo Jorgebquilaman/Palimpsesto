@@ -55,11 +55,28 @@ export default function Explorar() {
     [tipoId, palabra],
   )
 
-  const { data: datosNormas } = useQuery({
+  const { data: datosPalabra } = useQuery({
     queryKey: ['explorar-normas', consultaNormas],
     queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaNormas), signal),
     placeholderData: (anterior) => anterior,
   })
+
+  const esRespaldoTexto = Boolean(palabra) && palabra.trim().length >= 3 && datosPalabra?.total === 0
+
+  const consultaRespaldo = useMemo(
+    () => construirConsultaBusqueda({ q: palabra, tipoId, pageSize: 100 }),
+    [tipoId, palabra],
+  )
+
+  const { data: datosRespaldo } = useQuery({
+    queryKey: ['explorar-respaldo', consultaRespaldo],
+    queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaRespaldo), signal),
+    enabled: esRespaldoTexto,
+    placeholderData: (anterior) => anterior,
+  })
+
+  const datosNormas = esRespaldoTexto ? datosRespaldo : datosPalabra
+  const consultaVista = esRespaldoTexto ? consultaRespaldo : consultaNormas
 
   const tipoNombre = catalogos?.tipos.find(t => String(t.id) === tipoId)?.nombre
 
@@ -142,7 +159,7 @@ export default function Explorar() {
 
       <section aria-label="Vista visual" className="mt-4">
         <MapaBusqueda
-          consulta={consultaNormas}
+          consulta={consultaVista}
           normas={datosNormas?.items ?? []}
           palabra={palabra}
           onElegirPalabra={(p) => elegirPalabra(p || undefined)}
@@ -150,8 +167,19 @@ export default function Explorar() {
       </section>
 
       <p className="mt-3 text-xs text-ink-faint" aria-live="polite">
-        {(tipoNombre || palabra) && (
-          <>Mostrando las normas {tipoNombre ? <>del tipo {tipoNombre.toLowerCase()}</> : null}{tipoNombre && palabra ? ' y ' : null}{palabra ? <>de la palabra “{palabra}”</> : null}. </>
+        {esRespaldoTexto ? (
+          <>
+            La palabra “{palabra}” no coincide con ninguna palabra clave de las normas; se muestran las normas que la
+            mencionan en su texto.{' '}
+          </>
+        ) : (
+          (tipoNombre || palabra) && (
+            <>
+              Mostrando las normas {tipoNombre ? <>del tipo {tipoNombre.toLowerCase()}</> : null}
+              {tipoNombre && palabra ? ' y ' : null}
+              {palabra ? <>de la palabra “{palabra}”</> : null}.{' '}
+            </>
+          )
         )}
         {datosNormas?.total !== undefined && (
           <span className="num-tabulares">{datosNormas.total} normas publicadas en la vista.</span>
