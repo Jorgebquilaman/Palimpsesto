@@ -111,7 +111,7 @@ function MenuExplorar({ activo }: { activo: boolean }) {
         <div role="menu" aria-label="Explorar por órgano emisor" className="panel absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-72 overflow-auto p-1.5">
           <Link role="menuitem" to="/explorar" onClick={() => setAbierto(false)}
             className="block rounded-sm px-3 py-2 text-sm font-semibold transition-colors hover:bg-verde-100/60 hover:text-ink dark:hover:bg-crema-100/5">
-            <span aria-hidden="true" className="rombo mr-1">✦</span>Explorar por grafo
+            <span aria-hidden="true" className="rombo mr-1">✦</span>Exploración visual
           </Link>
           <p aria-hidden="true" className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-ink-faint">
             Órganos emisores

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDebounce } from '../components/useDebounce'
 import { Badge, Estado, EquemaEsqueletos } from '../components/ui'
+import MapaBusqueda from '../components/MapaBusqueda'
 import { OrnamentoLinea } from '../components/OrnamentoLinea'
 import {
   construirConsultaBusqueda,
@@ -36,6 +37,7 @@ export default function Busqueda() {
   const desde = parametros.get('desde') ?? ''
   const hasta = parametros.get('hasta') ?? ''
   const vigencia = parametros.get('vigencia') ?? ''
+  const palabra = parametros.get('palabra') ?? ''
   const orden = parametros.get('orden') ?? 'relevancia'
   const page = Number(parametros.get('page') ?? '1')
   const tamanoPagina = Number(parametros.get('pageSize') ?? '20')
@@ -79,8 +81,8 @@ export default function Busqueda() {
   })
 
   const consulta = useMemo(
-    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page, pageSize: tamanoPagina }),
-    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page, tamanoPagina],
+    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra, orden, page, pageSize: tamanoPagina }),
+    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra, orden, page, tamanoPagina],
   )
 
   const { data: resultados, isPending, isError, error } = useQuery({
@@ -98,6 +100,7 @@ export default function Busqueda() {
     desde && { etiqueta: `Desde ${desde}`, clave: 'desde' },
     hasta && { etiqueta: `Hasta ${hasta}`, clave: 'hasta' },
     vigencia && { etiqueta: ETIQUETAS_VIGENCIA[vigencia] ?? vigencia, clave: 'vigencia' },
+    palabra && { etiqueta: `Palabra: ${palabra}`, clave: 'palabra' },
   ].filter(Boolean) as { etiqueta: string; clave: string }[]
 
   return (
@@ -129,7 +132,7 @@ export default function Busqueda() {
                 Ver boletín oficial
               </Link>
               <Link to="/explorar" className="rounded-full border border-crema-100/30 px-5 py-2.5 text-sm font-medium text-crema-100 transition-colors hover:bg-crema-100/10">
-                Explorar por grafo
+                Exploración visual
               </Link>
               <a href="#formulario-busqueda" className="rounded-full border border-crema-100/30 px-5 py-2.5 text-sm font-medium text-crema-100 transition-colors hover:bg-crema-100/10">
                 Buscar una norma
@@ -410,6 +413,15 @@ export default function Busqueda() {
               </>
             )}
           </section>
+
+          {resultados && resultados.items.length > 0 && (
+            <MapaBusqueda
+              consulta={consulta}
+              normas={resultados.items}
+              palabra={palabra}
+              onElegirPalabra={p => actualizar({ palabra: p })}
+            />
+          )}
         </div>
       </main>
 

@@ -40,7 +40,7 @@ export default function Explorar() {
   const [seleccion, setSeleccion] = useState<Seleccion | null>(null)
 
   useEffect(() => {
-    document.title = 'Explorar por grafo — Digesto IUPA'
+    document.title = 'Exploración visual — Digesto IUPA'
   }, [])
 
   const { data: catalogos } = useQuery({ queryKey: ['catalogos'], queryFn: traerCatalogos, staleTime: 60_000 })
@@ -242,7 +242,7 @@ export default function Explorar() {
 
       <header className="mt-3">
         <h1 className="font-display text-titulo font-semibold tracking-tight">
-          <span className="rombo" aria-hidden="true">✦</span>Explorar por grafo
+          <span className="rombo" aria-hidden="true">✦</span>Exploración visual
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-soft">
           Recorré los documentos desde el tipo de norma, pasando por órgano emisor, año, vigencia y palabras clave
