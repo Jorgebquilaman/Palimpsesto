@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDebounce } from '../components/useDebounce'
 import { Badge, Estado, EquemaEsqueletos } from '../components/ui'
@@ -90,6 +90,13 @@ export default function Busqueda() {
     queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consulta), signal),
     placeholderData: (anterior) => anterior,
   })
+
+  const paginaAnterior = useRef(page)
+  useEffect(() => {
+    if (paginaAnterior.current === page) return
+    paginaAnterior.current = page
+    document.getElementById('resultados')?.scrollIntoView({ behavior: 'smooth' })
+  }, [page])
 
   const chipsActivos = [
     q && { etiqueta: `Texto: ${q}`, clave: 'q' },
@@ -306,7 +313,7 @@ export default function Busqueda() {
         )}
 
         <div className="mt-8 mx-auto max-w-5xl">
-          <section aria-label="Resultados">
+          <section id="resultados" aria-label="Resultados" className="ancla-con-header scroll-mt-4">
             {isError && (
               <Estado tipo="error" titulo="Error al buscar" detalle={(error as Error)?.message ?? 'Reintentá en unos segundos.'} />
             )}

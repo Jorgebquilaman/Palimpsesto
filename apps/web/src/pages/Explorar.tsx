@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ETIQUETAS_RELACION, ETIQUETAS_VIGENCIA } from '../components/etiquetas'
 import { GrafoExplorador, type DatosGrafo, type RelacionGrafo } from '../components/GrafoExplorador'
+import MapaBusqueda from '../components/MapaBusqueda'
 import { Badge, Estado } from '../components/ui'
 import {
   construirConsultaBusqueda,
@@ -38,10 +39,19 @@ export default function Explorar() {
   const [relaciones, setRelaciones] = useState<Record<string, RelacionGrafo[]>>({})
   const [cargandoRel, setCargandoRel] = useState<string[]>([])
   const [seleccion, setSeleccion] = useState<Seleccion | null>(null)
+  const [textoPalabra, setTextoPalabra] = useState(palabra)
+  const [palabraSincronizada, setPalabraSincronizada] = useState(palabra)
 
   useEffect(() => {
     document.title = 'Exploración visual — Digesto IUPA'
   }, [])
+
+  if (palabra !== palabraSincronizada) {
+    setPalabraSincronizada(palabra)
+    setTextoPalabra(palabra)
+  }
+
+  const vistaVisual = parametros.get('vista') === 'visual'
 
   const { data: catalogos } = useQuery({ queryKey: ['catalogos'], queryFn: traerCatalogos, staleTime: 60_000 })
   const { data: resumen } = useQuery({ queryKey: ['resumen-global'], queryFn: () => traerBusqueda(new URLSearchParams()), staleTime: 300_000 })
@@ -91,6 +101,18 @@ export default function Explorar() {
 
   function elegirPalabra(p: string | undefined) {
     fijar({ palabra: p }, [], p ? { kind: 'palabra', id: p } : null)
+  }
+
+  function alternarVista(vista: 'jerarquia' | 'visual') {
+    const nuevos = new URLSearchParams(parametros)
+    if (vista === 'visual') nuevos.set('vista', 'visual')
+    else nuevos.delete('vista')
+    setParametros(nuevos)
+  }
+
+  function enviarPalabra() {
+    const p = textoPalabra.trim()
+    elegirPalabra(p || undefined)
   }
 
   function cambiarFechas(cambios: Record<string, string | undefined>) {
@@ -143,7 +165,7 @@ export default function Explorar() {
   const { data: datosNormas } = useQuery({
     queryKey: ['explorar-normas', consultaNormas],
     queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaNormas), signal),
-    enabled: !!palabra,
+    enabled: !!palabra || vistaVisual,
     placeholderData: (anterior) => anterior,
   })
 
@@ -251,7 +273,50 @@ export default function Explorar() {
       </header>
 
       <section aria-label="Filtros del explorador" className="panel mt-4 p-4 sm:p-5">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Tipo de norma">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div role="radiogroup" aria-label="Modo de exploración" className="flex rounded-full bg-verde-50 p-1 dark:bg-crema-100/5">
+            {([['jerarquia', 'Grafo jerárquico'], ['visual', 'Mapa / Red']] as const).map(([valor, etiqueta]) => (
+              <button
+                key={valor}
+                type="button"
+                role="radio"
+                aria-checked={(!vistaVisual && valor === 'jerarquia') || (vistaVisual && valor === 'visual')}
+                onClick={() => alternarVista(valor)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  (!vistaVisual && valor === 'jerarquia') || (vistaVisual && valor === 'visual')
+                    ? 'bg-primario text-sobre-primario shadow-xs'
+                    : 'text-ink-soft hover:text-ink'
+                }`}
+              >
+                {etiqueta}
+              </button>
+            ))}
+          </div>
+        </div>
+        <form
+          className="mt-3 flex flex-wrap items-end gap-2 border-t border-line pt-3"
+          onSubmit={(e) => { e.preventDefault(); enviarPalabra() }}
+          aria-label="Cargar el grafo por palabra clave"
+        >
+          <label className="min-w-[12rem] flex-1 text-sm">
+            <span className="mb-1 block text-xs font-medium text-ink-soft">Palabra clave (dispara la carga del grafo)</span>
+            <input
+              type="search"
+              value={textoPalabra}
+              onChange={(e) => setTextoPalabra(e.target.value)}
+              placeholder="ej.: acceso abierto, presupuesto, matrícula…"
+              className="campo"
+              aria-label="Palabra clave"
+            />
+          </label>
+          <button type="submit" className="btn-primario">Grafo con palabra</button>
+          {palabra && (
+            <button type="button" className="btn-sutil" onClick={() => { setTextoPalabra(''); elegirPalabra(undefined) }}>
+              Quitar palabra
+            </button>
+          )}
+        </form>
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3" role="group" aria-label="Tipo de norma">
           {(catalogos?.tipos ?? []).map(t => (
             <button
               key={t.id}
@@ -279,7 +344,18 @@ export default function Explorar() {
         </div>
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className={vistaVisual ? "mt-4" : "mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]"}>
+        {vistaVisual ? (
+          <section aria-label="Vista visual" className="min-w-0">
+            <MapaBusqueda
+              consulta={consultaNormas}
+              normas={datosNormas?.items ?? []}
+              palabra={palabra}
+              onElegirPalabra={(p) => elegirPalabra(p || undefined)}
+            />
+          </section>
+        ) : (
+        <>
         <section aria-label="Grafo de documentos" className="panel min-w-0 overflow-hidden">
           <p className="num-tabulares border-b border-line px-4 py-2 text-xs text-ink-soft" aria-live="polite">
             {tipoNombre || '…'}
@@ -446,6 +522,8 @@ export default function Explorar() {
             </div>
           )}
         </aside>
+        </>
+        )}
       </div>
     </main>
   )
