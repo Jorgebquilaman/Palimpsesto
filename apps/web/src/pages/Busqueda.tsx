@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import DOMPurify from 'dompurify'
 import { useDebounce } from '../components/useDebounce'
 import { Badge, Estado, EquemaEsqueletos } from '../components/ui'
 import { OrnamentoLinea } from '../components/OrnamentoLinea'
@@ -17,6 +18,8 @@ const MODOS = [
   { valor: 'cualquiera', etiqueta: 'Cualquiera' },
   { valor: 'frase', etiqueta: 'Frase exacta' },
 ]
+
+const CLAVE_POR_PAGINA = 'digesto-por-pagina'
 
 const ORDENES = [
   { valor: 'relevancia', etiqueta: 'Relevancia' },
@@ -38,7 +41,9 @@ export default function Busqueda() {
   const vigencia = parametros.get('vigencia') ?? ''
   const orden = parametros.get('orden') ?? 'relevancia'
   const page = Number(parametros.get('page') ?? '1')
-  const tamanoPagina = Number(parametros.get('pageSize') ?? '20')
+  const tamanoPagina = Number(
+    parametros.get('pageSize') ?? localStorage.getItem(CLAVE_POR_PAGINA) ?? '10',
+  )
 
   const [textoBusqueda, setTextoBusqueda] = useState(q)
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
@@ -391,7 +396,7 @@ export default function Busqueda() {
                             <p
                               className="mt-3 border-l-2 border-barro-300 pl-3 font-lectura text-sm leading-relaxed text-ink-soft"
                               dangerouslySetInnerHTML={{
-                                __html: item.snippet,
+                                __html: DOMPurify.sanitize(item.snippet, { ALLOWED_TAGS: ['mark'], ALLOWED_ATTR: [] }),
                               }}
                             />
                           )}
@@ -408,8 +413,11 @@ export default function Busqueda() {
                       />
                       <label className="flex items-center gap-2 text-xs text-ink-faint">
                         por página
-                        <select value={String(tamanoPagina)} onChange={(e) => actualizar({ pageSize: e.target.value, page: 1 })}
-                          className="campo py-1 text-xs" aria-label="Resultados por página">
+                      <select value={String(tamanoPagina)} onChange={(e) => {
+                        localStorage.setItem(CLAVE_POR_PAGINA, e.target.value)
+                        actualizar({ pageSize: e.target.value, page: 1 })
+                      }}
+                        className="campo py-1 text-xs" aria-label="Resultados por página">
                           {[10, 50, 100].map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                       </label>
@@ -453,8 +461,7 @@ export default function Busqueda() {
 }
 
 function Paginador({ page, total, pageSize, onCambiar }: { page: number; total: number; pageSize: number; onCambiar: (page: number) => void }) {
-  const paginas = Math.ceil(total / pageSize)
-  if (paginas <= 1) return null
+  const paginas = Math.max(1, Math.ceil(total / pageSize))
   return (
     <nav aria-label="Paginación" className="mt-8 flex items-center justify-center gap-3">
       <button type="button" disabled={page <= 1} onClick={() => onCambiar(page - 1)}
