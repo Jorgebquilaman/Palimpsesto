@@ -337,7 +337,10 @@ export default function MapaBusqueda({
           onNodeClick={(_, nodo) => {
             const d = nodo.data as DatoNodo
             if (d.kind === 'palabra') onElegirPalabra(d.palabra === palabra ? '' : d.palabra)
-            else if (d.kind === 'norma') navegar(`/normas/${encodeURIComponent(d.codigo)}`)
+            else if (d.kind === 'norma') {
+              const resaltado = consulta && palabra ? `?q=${encodeURIComponent(palabra)}` : ''
+              navegar(`/normas/${encodeURIComponent(d.codigo)}${resaltado}`)
+            }
           }}
           className="bg-transparent"
         >

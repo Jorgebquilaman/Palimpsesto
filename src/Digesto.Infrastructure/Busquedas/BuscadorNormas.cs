@@ -276,8 +276,8 @@ public class BuscadorNormas : IBuscadorNormas
         }
         if (!string.IsNullOrWhiteSpace(filtros.Palabra))
         {
-            where += "\n  AND n.palabras_clave @> @palabra";
-            p.Add("@palabra", new[] { filtros.Palabra.Trim() });
+            where += "\n  AND EXISTS (SELECT 1 FROM unnest(n.palabras_clave) pw WHERE lower(f_unaccent(pw)) = lower(f_unaccent(@palabra)))";
+            p.Add("@palabra", filtros.Palabra.Trim());
         }
 
         var with = "";
@@ -343,9 +343,27 @@ public class BuscadorNormas : IBuscadorNormas
         {
             if (snippets.TryGetValue(item.Id, out var snippet))
             {
-                item.Snippet = snippet;
+                item.Snippet = EscaparSnippet(snippet ?? "");
             }
         }
+    }
+
+    /// <summary>
+    /// ts_headline() inserta <mark> sobre el texto de origen sin escapar el HTML
+    /// que ese texto pueda contener. Se escapa todo salvo los marcadores.
+    /// </summary>
+    private static string EscaparSnippet(string snippet)
+    {
+        var inicio = Guid.NewGuid().ToString("N");
+        var cierre = Guid.NewGuid().ToString("N");
+        return snippet
+            .Replace("<mark>", inicio)
+            .Replace("</mark>", cierre)
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace(inicio, "<mark>")
+            .Replace(cierre, "</mark>");
     }
 
     private async Task<Facetas> CalcularFacetasAsync(Npgsql.NpgsqlConnection con, FiltrosBusqueda filtros, CancellationToken ct)

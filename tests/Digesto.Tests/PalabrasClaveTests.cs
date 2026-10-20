@@ -108,6 +108,23 @@ public class PalabrasClaveTests : IClassFixture<MigracionYBusquedaFixture>
     private static IBuscadorNormas Buscador(ServiceProvider services) =>
         services.GetRequiredService<IBuscadorNormas>();
 
+    private static FiltrosBusqueda Filtros(string? palabra = null) =>
+        new(null, ModoBusqueda.Todas, null, null, null, null, null, null, null, "relevancia", 1, 20, palabra);
+
+    [Fact]
+    public async Task Buscar_PorPalabra_IgnoraMayusculasYAcentos()
+    {
+        var services = await PrepararAsync();
+
+        var exacta = await Buscador(services).BuscarAsync(Filtros("becas"));
+        var mayuscula = await Buscador(services).BuscarAsync(Filtros("BECAS"));
+        var sinAcento = await Buscador(services).BuscarAsync(Filtros("extension"));
+
+        Assert.Equal(2, exacta.Total);
+        Assert.Equal(2, mayuscula.Total);
+        Assert.Equal(1, sinAcento.Total);
+    }
+
     [Fact]
     public async Task Agregar_CuentaPorPalabraOrdenada()
     {

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDebounce } from '../components/useDebounce'
 import { Badge, Estado, EquemaEsqueletos } from '../components/ui'
-import MapaBusqueda from '../components/MapaBusqueda'
 import { OrnamentoLinea } from '../components/OrnamentoLinea'
 import {
   construirConsultaBusqueda,
@@ -37,7 +36,6 @@ export default function Busqueda() {
   const desde = parametros.get('desde') ?? ''
   const hasta = parametros.get('hasta') ?? ''
   const vigencia = parametros.get('vigencia') ?? ''
-  const palabra = parametros.get('palabra') ?? ''
   const orden = parametros.get('orden') ?? 'relevancia'
   const page = Number(parametros.get('page') ?? '1')
   const tamanoPagina = Number(parametros.get('pageSize') ?? '20')
@@ -81,8 +79,8 @@ export default function Busqueda() {
   })
 
   const consulta = useMemo(
-    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra, orden, page, pageSize: tamanoPagina }),
-    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra, orden, page, tamanoPagina],
+    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page, pageSize: tamanoPagina }),
+    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, orden, page, tamanoPagina],
   )
 
   const { data: resultados, isPending, isError, error } = useQuery({
@@ -98,17 +96,6 @@ export default function Busqueda() {
     document.getElementById('resultados')?.scrollIntoView({ behavior: 'smooth' })
   }, [page])
 
-  const consultaVisual = useMemo(
-    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra, pageSize: 100 }),
-    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra],
-  )
-
-  const { data: resultadosVisuales } = useQuery({
-    queryKey: ['busqueda-visual', consultaVisual],
-    queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaVisual), signal),
-    placeholderData: (anterior) => anterior,
-  })
-
   const chipsActivos = [
     q && { etiqueta: `Texto: ${q}`, clave: 'q' },
     numero && { etiqueta: `N° ${numero}`, clave: 'numero' },
@@ -118,7 +105,6 @@ export default function Busqueda() {
     desde && { etiqueta: `Desde ${desde}`, clave: 'desde' },
     hasta && { etiqueta: `Hasta ${hasta}`, clave: 'hasta' },
     vigencia && { etiqueta: ETIQUETAS_VIGENCIA[vigencia] ?? vigencia, clave: 'vigencia' },
-    palabra && { etiqueta: `Palabra: ${palabra}`, clave: 'palabra' },
   ].filter(Boolean) as { etiqueta: string; clave: string }[]
 
   return (
@@ -323,15 +309,6 @@ export default function Busqueda() {
           </div>
         )}
 
-          {resultadosVisuales && resultadosVisuales.items.length > 0 && (
-            <MapaBusqueda
-              consulta={consultaVisual}
-              normas={resultadosVisuales.items}
-              palabra={palabra}
-              onElegirPalabra={p => actualizar({ palabra: p })}
-            />
-          )}
-
         <div className="mt-8 mx-auto max-w-5xl">
           <section id="resultados" aria-label="Resultados" className="ancla-con-header scroll-mt-4">
             {isError && (
@@ -413,7 +390,9 @@ export default function Busqueda() {
                           {item.snippet && (
                             <p
                               className="mt-3 border-l-2 border-barro-300 pl-3 font-lectura text-sm leading-relaxed text-ink-soft"
-                              dangerouslySetInnerHTML={{ __html: item.snippet }}
+                              dangerouslySetInnerHTML={{
+                                __html: item.snippet,
+                              }}
                             />
                           )}
                         </li>
