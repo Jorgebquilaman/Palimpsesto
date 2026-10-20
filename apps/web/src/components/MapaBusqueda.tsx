@@ -11,6 +11,7 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import { traerPalabrasClave, traerRelaciones, type ResultadoItem } from '../api/cliente'
 import { ETIQUETAS_RELACION } from './etiquetas'
 import { Badge } from './ui'
@@ -65,13 +66,17 @@ function NodoNorma({ data }: NodeProps<Node<DatoNodo>>) {
 const TIPOS_NODO = { temaNodo: NodoTema, palabraNodo: NodoPalabra, normaNodo: NodoNorma }
 
 function Encuadrar({ clave }: { clave: string }) {
-  const { fitView } = useReactFlow()
-  const anterior = useRef(clave)
+  const { fitView, getViewport, setViewport } = useReactFlow()
+  const anterior = useRef<string | null>(null)
   useEffect(() => {
     if (anterior.current === clave) return
     anterior.current = clave
-    fitView({ padding: 0.12, maxZoom: 1 })
-  }, [clave, fitView])
+    if (getViewport().zoom > 0.98) {
+      setViewport({ zoom: getViewport().zoom, x: 32, y: 16 }, { duration: 200 })
+      return
+    }
+    fitView({ padding: 0.1, maxZoom: 1, duration: 200 })
+  }, [clave, fitView, getViewport, setViewport])
   return null
 }
 
@@ -124,7 +129,10 @@ function armarMapa(
   nodos.push({ id: 'tema', type: 'temaNodo', position: { x: 0, y: 0 }, data: { kind: 'tema', texto: textoTema } })
 
   const columnaPalabras: string[] = []
-  for (const p of palabras) {
+  const palabrasVisibles = palabraElegida && !palabras.some(p => p.palabra === palabraElegida)
+    ? [...palabras, { palabra: palabraElegida, cantidad: normas.length }]
+    : palabras
+  for (const p of palabrasVisibles) {
     const id = `palabra:${p.palabra}`
     columnaPalabras.push(id)
     nodos.push({
@@ -305,6 +313,7 @@ export default function MapaBusqueda({
           edges={modelo.aristas}
           nodeTypes={TIPOS_NODO}
           nodesConnectable={false}
+          nodesDraggable={false}
           fitView
           fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
           minZoom={0.7}
