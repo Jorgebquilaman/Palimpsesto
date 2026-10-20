@@ -424,6 +424,15 @@
     background: rgb(214 134 91 / 0.28);
   }
 
+  mark.resaltado-alt {
+    background: var(--verde-100);
+    border-bottom-color: var(--verde-700);
+  }
+  .dark mark.resaltado-alt {
+    background: rgb(27 77 62 / 0.35);
+    border-bottom-color: var(--verde-300);
+  }
+
   .lectura {
     font-family: var(--font-lectura);
     font-size: 18px;

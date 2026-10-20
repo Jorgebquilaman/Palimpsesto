@@ -597,7 +597,14 @@ function TextoNorma({ fragmentos, terminos }: { fragmentos: { orden: number; pag
       return
     }
 
-    const regex = new RegExp(termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu')
+    const palabrasBuscadas = Array.from(
+      new Set(termino.split(/\s+/).map(p => p.trim()).filter(p => p.length >= 2)),
+    ).sort((a, b) => b.length - a.length)
+    if (palabrasBuscadas.length === 0) return
+
+    const regex = new RegExp(palabrasBuscadas.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'giu')
+    const estilos = new Map<string, string>()
+    palabrasBuscadas.forEach((p, i) => estilos.set(p.toLowerCase(), i % 2 === 1 ? 'resaltado-alt' : ''))
     const treeWalker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT)
     const candidatos: Text[] = []
     while (treeWalker.nextNode()) {
@@ -619,7 +626,9 @@ function TextoNorma({ fragmentos, terminos }: { fragmentos: { orden: number; pag
           trozo.append(document.createTextNode(texto.slice(ultimo, hallazgo.index)))
         }
         const marca = document.createElement('mark')
-        marca.className = 'resaltado-digesto'
+        const palabraMarca = hallazgo[0].toLowerCase()
+        marca.className = `resaltado-digesto ${estilos.get(palabraMarca) ?? ''}`.trim()
+        marca.title = palabraMarca
         marca.textContent = hallazgo[0]
         trozo.append(marca)
         ultimo = hallazgo.index + hallazgo[0].length
