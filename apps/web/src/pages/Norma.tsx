@@ -268,7 +268,7 @@ export default function Norma() {
                         <ol className="space-y-1 text-sm">
                           {texto.fragmentos.map(f => (
                             <li key={f.orden}>
-                              <EnlaceIndice f={f} activo={fragmentoActivo === f.orden} onClick={() => setIndiceAbierto(false)} />
+                              <EnlaceIndice f={f} activo={fragmentoActivo === f.orden} onActivar={setFragmentoActivo} onClick={() => setIndiceAbierto(false)} />
                             </li>
                           ))}
                         </ol>
@@ -295,7 +295,7 @@ export default function Norma() {
                     <ol className="space-y-1 text-sm">
                       {texto.fragmentos.map(f => (
                         <li key={f.orden}>
-                          <EnlaceIndice f={f} activo={fragmentoActivo === f.orden} />
+                          <EnlaceIndice f={f} activo={fragmentoActivo === f.orden} onActivar={setFragmentoActivo} />
                         </li>
                       ))}
                     </ol>
@@ -597,16 +597,26 @@ function BarraFiltrosPie() {
   )
 }
 
-function EnlaceIndice({ f, activo, onClick }: { f: Fragmento; activo: boolean; onClick?: () => void }) {
+function EnlaceIndice({ f, activo, onActivar, onClick }: { f: Fragmento; activo: boolean; onActivar?: (orden: number) => void; onClick?: () => void }) {
   return (
     <a
       href={`#fragmento-${f.orden}`}
-      onClick={onClick}
+      onClick={() => {
+        onActivar?.(f.orden)
+        const destino = document.getElementById(`fragmento-${f.orden}`)
+        if (destino) {
+          destino.classList.remove('resaltado-flash')
+          void destino.offsetWidth
+          destino.classList.add('resaltado-flash')
+          window.setTimeout(() => destino.classList.remove('resaltado-flash'), 2200)
+        }
+        onClick?.()
+      }}
       aria-current={activo ? 'true' : undefined}
-      className={`block rounded px-1 py-0.5 transition-colors ${
+      className={`block rounded-l border-l-2 px-1.5 py-0.5 transition-colors ${
         activo
-          ? 'bg-verde-100 font-medium text-verde-950 dark:bg-verde-900/50 dark:text-verde-100'
-          : 'hover:bg-verde-50'
+          ? 'border-acento bg-barro-100 font-semibold text-acento-texto dark:bg-barro-500/25 dark:text-barro-300'
+          : 'border-transparent hover:bg-verde-50'
       }`}
     >
       {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}

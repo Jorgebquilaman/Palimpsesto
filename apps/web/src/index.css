@@ -433,6 +433,23 @@
     border-bottom-color: var(--verde-300);
   }
 
+  .lectura article {
+    scroll-margin-top: 5.5rem;
+  }
+  .resaltado-flash {
+    animation: pulso-destino 2.2s ease-out;
+  }
+  @keyframes pulso-destino {
+    0% {
+      background: var(--verde-100);
+      box-shadow: inset 3px 0 0 0 var(--verde-700);
+    }
+    100% {
+      background: transparent;
+      box-shadow: inset 3px 0 0 0 transparent;
+    }
+  }
+
   .lectura {
     font-family: var(--font-lectura);
     font-size: 18px;
