@@ -8,6 +8,7 @@ import {
   traerNorma,
   traerRelaciones,
 } from '../api/cliente'
+import type { Fragmento } from '../api/cliente'
 import { ETIQUETAS_VIGENCIA } from '../components/etiquetas'
 import { Badge } from '../components/ui'
 import { VisorPdf } from '../components/VisorPdf'
@@ -60,6 +61,7 @@ export default function Norma() {
   const [terminoInterior, setTerminoInterior] = useState('')
   const [indiceAbierto, setIndiceAbierto] = useState(false)
   const [mensaje, setMensaje] = useState('')
+  const [fragmentoActivo, setFragmentoActivo] = useState<number | null>(null)
 
   const { data: norma, isError } = useQuery({
     queryKey: ['norma', codigo],
@@ -92,6 +94,25 @@ export default function Norma() {
     const t = setTimeout(() => setMensaje(''), 3000)
     return () => clearTimeout(t)
   }, [mensaje])
+
+  useEffect(() => {
+    if (!texto || pestana !== 'texto') {
+      setFragmentoActivo(null)
+      return
+    }
+    const observador = new IntersectionObserver(entradas => {
+      for (const entrada of entradas) {
+        if (!entrada.isIntersecting) continue
+        const orden = Number(entrada.target.id.replace('fragmento-', ''))
+        if (!Number.isNaN(orden) && orden > 0) setFragmentoActivo(orden)
+      }
+    }, { rootMargin: '-96px 0px -60% 0px' })
+    const objetivos = texto.fragmentos
+      .map(f => document.getElementById(`fragmento-${f.orden}`))
+      .filter((el): el is HTMLElement => el !== null)
+    objetivos.forEach(el => observador.observe(el))
+    return () => observador.disconnect()
+  }, [texto, pestana])
 
   function copiar(contenido: string, msj: string) {
     void navigator.clipboard.writeText(contenido)
@@ -247,9 +268,7 @@ export default function Norma() {
                         <ol className="space-y-1 text-sm">
                           {texto.fragmentos.map(f => (
                             <li key={f.orden}>
-                              <a href={`#fragmento-${f.orden}`} onClick={() => setIndiceAbierto(false)} className="block rounded px-1 py-0.5 hover:bg-verde-50">
-                                {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}
-                              </a>
+                              <EnlaceIndice f={f} activo={fragmentoActivo === f.orden} onClick={() => setIndiceAbierto(false)} />
                             </li>
                           ))}
                         </ol>
@@ -276,9 +295,7 @@ export default function Norma() {
                     <ol className="space-y-1 text-sm">
                       {texto.fragmentos.map(f => (
                         <li key={f.orden}>
-                          <a href={`#fragmento-${f.orden}`} className="block rounded px-1 py-0.5 hover:bg-verde-50">
-                            {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}
-                          </a>
+                          <EnlaceIndice f={f} activo={fragmentoActivo === f.orden} />
                         </li>
                       ))}
                     </ol>
@@ -577,6 +594,23 @@ function BarraFiltrosPie() {
         </div>
       )}
     </>
+  )
+}
+
+function EnlaceIndice({ f, activo, onClick }: { f: Fragmento; activo: boolean; onClick?: () => void }) {
+  return (
+    <a
+      href={`#fragmento-${f.orden}`}
+      onClick={onClick}
+      aria-current={activo ? 'true' : undefined}
+      className={`block rounded px-1 py-0.5 transition-colors ${
+        activo
+          ? 'bg-verde-100 font-medium text-verde-950 dark:bg-verde-900/50 dark:text-verde-100'
+          : 'hover:bg-verde-50'
+      }`}
+    >
+      {f.etiqueta ?? NOMBRE_TIPO[f.tipo] ?? 'Fragmento'}
+    </a>
   )
 }
 
