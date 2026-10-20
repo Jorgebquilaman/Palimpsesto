@@ -111,6 +111,7 @@ export default function RevisionNorma() {
       setMensaje('Cambios guardados')
       setConfirmado(true)
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
+      void cliente.invalidateQueries({ queryKey: ['admin-normas'] })
     },
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
   })
@@ -131,6 +132,7 @@ export default function RevisionNorma() {
     onSuccess: () => {
       setMensaje('Norma publicada')
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
+      void cliente.invalidateQueries({ queryKey: ['admin-normas'] })
     },
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
   })
@@ -140,6 +142,7 @@ export default function RevisionNorma() {
     onSuccess: () => {
       setMensaje('Norma despublicada (en revisión)')
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
+      void cliente.invalidateQueries({ queryKey: ['admin-normas'] })
     },
     onError: (e) => setMensaje(`Error: ${(e as Error).message}`),
   })
@@ -186,6 +189,7 @@ export default function RevisionNorma() {
       setFragmentosEdit({})
       void cliente.invalidateQueries({ queryKey: ['admin-norma', id] })
       void cliente.invalidateQueries({ queryKey: ['admin-norma-relaciones', id] })
+      void cliente.invalidateQueries({ queryKey: ['admin-normas'] })
     },
     onError: (e) => setAiModal({ fase: 'error', error: (e as Error).message }),
   })
