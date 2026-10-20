@@ -239,7 +239,7 @@ export default function MapaBusqueda({
   const { data: relaciones } = useQuery({
     queryKey: ['mapa-relaciones', consulta],
     queryFn: async () => {
-      const pedidos = normas.slice(0, 8).map(async n => {
+      const pedidos = normas.slice(0, 10).map(async n => {
         try {
           const r = await traerRelaciones(n.codigo)
           const lista = [
@@ -263,10 +263,10 @@ export default function MapaBusqueda({
         parametrosPalabras.q ?? 'Todo el digesto',
         palabras?.palabras.slice(0, 12) ?? [],
         palabra,
-        normas.slice(0, 12),
+        normas.slice(0, 30),
       )
     }
-    return armarRed(normas.slice(0, 8), relaciones ?? {})
+    return armarRed(normas.slice(0, 10), relaciones ?? {})
   }, [vista, palabras, relaciones, normas, palabra, parametrosPalabras.q])
 
   const disposicion = JSON.stringify(modelo.nodos.map(n => n.id))
@@ -299,15 +299,15 @@ export default function MapaBusqueda({
           ? 'Hacé clic en una palabra clave para filtrar los resultados.'
           : 'Las normas publicadas de la búsqueda y sus relaciones; las reservadas no aparecen.'}
       </p>
-      <div className="h-[430px] rounded-b-lg" role="application" aria-label={vista === 'mapa' ? 'Mapa conceptual' : 'Red conceptual'}>
+      <div className="h-[70vh] min-h-[540px] rounded-b-lg" role="application" aria-label={vista === 'mapa' ? 'Mapa conceptual' : 'Red conceptual'}>
         <ReactFlow
           nodes={modelo.nodos}
           edges={modelo.aristas}
           nodeTypes={TIPOS_NODO}
           nodesConnectable={false}
           fitView
-          fitViewOptions={{ padding: 0.12, maxZoom: 1 }}
-          minZoom={0.2}
+          fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
+          minZoom={0.7}
           onNodeClick={(_, nodo) => {
             const d = nodo.data as DatoNodo
             if (d.kind === 'palabra') onElegirPalabra(d.palabra === palabra ? '' : d.palabra)

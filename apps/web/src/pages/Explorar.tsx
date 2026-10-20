@@ -51,7 +51,7 @@ export default function Explorar() {
     setTextoPalabra(palabra)
   }
 
-  const vistaVisual = parametros.get('vista') === 'visual'
+  const vistaVisual = parametros.get('vista') !== 'jerarquia'
 
   const { data: catalogos } = useQuery({ queryKey: ['catalogos'], queryFn: traerCatalogos, staleTime: 60_000 })
   const { data: resumen } = useQuery({ queryKey: ['resumen-global'], queryFn: () => traerBusqueda(new URLSearchParams()), staleTime: 300_000 })
@@ -105,7 +105,7 @@ export default function Explorar() {
 
   function alternarVista(vista: 'jerarquia' | 'visual') {
     const nuevos = new URLSearchParams(parametros)
-    if (vista === 'visual') nuevos.set('vista', 'visual')
+    if (vista === 'jerarquia') nuevos.set('vista', 'jerarquia')
     else nuevos.delete('vista')
     setParametros(nuevos)
   }

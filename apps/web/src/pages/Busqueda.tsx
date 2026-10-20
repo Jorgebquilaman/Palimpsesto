@@ -98,6 +98,17 @@ export default function Busqueda() {
     document.getElementById('resultados')?.scrollIntoView({ behavior: 'smooth' })
   }, [page])
 
+  const consultaVisual = useMemo(
+    () => construirConsultaBusqueda({ q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra, pageSize: 100 }),
+    [q, modo, numero, anio, tipoId, organoId, desde, hasta, vigencia, palabra],
+  )
+
+  const { data: resultadosVisuales } = useQuery({
+    queryKey: ['busqueda-visual', consultaVisual],
+    queryFn: ({ signal }) => traerBusqueda(new URLSearchParams(consultaVisual), signal),
+    placeholderData: (anterior) => anterior,
+  })
+
   const chipsActivos = [
     q && { etiqueta: `Texto: ${q}`, clave: 'q' },
     numero && { etiqueta: `N° ${numero}`, clave: 'numero' },
@@ -312,6 +323,15 @@ export default function Busqueda() {
           </div>
         )}
 
+          {resultadosVisuales && resultadosVisuales.items.length > 0 && (
+            <MapaBusqueda
+              consulta={consultaVisual}
+              normas={resultadosVisuales.items}
+              palabra={palabra}
+              onElegirPalabra={p => actualizar({ palabra: p })}
+            />
+          )}
+
         <div className="mt-8 mx-auto max-w-5xl">
           <section id="resultados" aria-label="Resultados" className="ancla-con-header scroll-mt-4">
             {isError && (
@@ -421,14 +441,6 @@ export default function Busqueda() {
             )}
           </section>
 
-          {resultados && resultados.items.length > 0 && (
-            <MapaBusqueda
-              consulta={consulta}
-              normas={resultados.items}
-              palabra={palabra}
-              onElegirPalabra={p => actualizar({ palabra: p })}
-            />
-          )}
         </div>
       </main>
 
