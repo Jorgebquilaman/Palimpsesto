@@ -140,7 +140,14 @@ function DocumentosBitacora() {
         </div>
       )}
 
-      {elegido && <HistorialDocumento clave={elegido.documentoId ?? elegido.id} documento={elegido} onCerrar={() => setElegido(null)} />}
+      {elegido && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Historial del documento">
+          <button type="button" aria-label="Cerrar historial" onClick={() => setElegido(null)} className="absolute inset-0 cursor-default bg-ink/40" />
+          <div className="absolute left-1/2 top-[5vh] max-h-[88vh] w-[min(48rem,94vw)] -translate-x-1/2 overflow-y-auto rounded-lg border border-line bg-surface p-4 shadow-2xl sm:p-5">
+            <HistorialDocumento clave={elegido.documentoId ?? elegido.id} documento={elegido} onCerrar={() => setElegido(null)} />
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button type="button" className="btn-secundario text-xs" disabled={pagina <= 1 || isFetching} onClick={() => setPagina(p => p - 1)}>← Anteriores</button>
@@ -204,6 +211,18 @@ function HistorialDocumento({ clave, documento, onCerrar }: { clave: string | nu
       void cliente.invalidateQueries({ queryKey: ['bitacora-documentos'] })
     },
   })
+
+  useEffect(() => {
+    const escapar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCerrar()
+    }
+    window.addEventListener('keydown', escapar)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', escapar)
+      document.body.style.overflow = ''
+    }
+  }, [onCerrar])
 
   return (
     <section aria-label="Historial del documento" className="panel p-4 sm:p-5">
