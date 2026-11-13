@@ -36,6 +36,9 @@ public class AdministracionController : ControllerBase
                 a.Accion,
                 a.Antes,
                 a.Despues,
+                a.NormaCodigo,
+                a.NormaTitulo,
+                a.Texto,
                 a.Fecha,
             })
             .ToListAsync(ct);
