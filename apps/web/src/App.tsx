@@ -10,6 +10,7 @@ import NormasAdmin from './pages/NormasAdmin'
 import RevisionNorma from './pages/RevisionNorma'
 import CatalogosAdmin from './pages/CatalogosAdmin'
 import AuditoriaAdmin from './pages/AuditoriaAdmin'
+import BitacoraAdmin from './pages/BitacoraAdmin'
 import UsuariosAdmin from './pages/UsuariosAdmin'
 import AiAdmin from './pages/AiAdmin'
 import AdminBoletines from './pages/AdminBoletines'
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="catalogos" element={<Navigate to="/admin/catalogos/tipos" replace />} />
             <Route path="catalogos/:seccion" element={<CatalogosAdmin />} />
             <Route path="auditoria" element={<AuditoriaAdmin />} />
+            <Route path="bitacora" element={<BitacoraAdmin />} />
             <Route path="usuarios" element={<UsuariosAdmin />} />
             <Route path="ai" element={<AiAdmin />} />
             <Route path="boletines" element={<AdminBoletines />} />

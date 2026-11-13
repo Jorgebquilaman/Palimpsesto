@@ -63,6 +63,19 @@ namespace Digesto.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha");
 
+                    b.Property<string>("NormaCodigo")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("norma_codigo");
+
+                    b.Property<string>("NormaTitulo")
+                        .HasColumnType("text")
+                        .HasColumnName("norma_titulo");
+
+                    b.Property<string>("Texto")
+                        .HasColumnType("text")
+                        .HasColumnName("texto");
+
                     b.Property<string>("Usuario")
                         .IsRequired()
                         .HasMaxLength(200)

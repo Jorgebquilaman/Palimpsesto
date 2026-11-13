@@ -171,5 +171,8 @@ public class Auditoria
     public string Accion { get; set; } = null!;
     public string? Antes { get; set; }
     public string? Despues { get; set; }
+    public string? NormaCodigo { get; set; }
+    public string? NormaTitulo { get; set; }
+    public string? Texto { get; set; }
     public DateTime Fecha { get; set; } = DateTime.UtcNow;
 }

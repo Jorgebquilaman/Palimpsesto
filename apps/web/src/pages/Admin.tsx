@@ -221,6 +221,7 @@ export function LayoutAdmin() {
           </Rama>
 
           <HojaSimple ruta="/admin/boletines" icono={<Icono nombre="boletines" />} activa={ruta === '/admin/boletines'}>Boletines oficiales</HojaSimple>
+          <HojaSimple ruta="/admin/bitacora" icono={<Icono nombre="bitacora" />} activa={ruta === '/admin/bitacora'}>Bitácora</HojaSimple>
           <HojaSimple ruta="/admin/ai" icono={<Icono nombre="ai" />} activa={ruta === '/admin/ai'}>Inteligencia artificial</HojaSimple>
           <HojaSimple ruta="/admin/auditoria" icono={<Icono nombre="auditoria" />} activa={ruta === '/admin/auditoria'}>Auditoría</HojaSimple>
           <HojaSimple ruta="/admin/perfil" icono={<Icono nombre="perfil" />} activa={ruta === '/admin/perfil'}>Mi perfil</HojaSimple>
@@ -264,7 +265,7 @@ export function LayoutAdmin() {
   )
 }
 
-function Icono({ nombre }: { nombre: 'normas' | 'catalogos' | 'boletines' | 'ai' | 'auditoria' | 'perfil' | 'usuarios' }) {
+function Icono({ nombre }: { nombre: 'normas' | 'catalogos' | 'boletines' | 'ai' | 'auditoria' | 'perfil' | 'usuarios' | 'bitacora' }) {
   const comun = {
     width: 18,
     height: 18,
@@ -286,6 +287,8 @@ function Icono({ nombre }: { nombre: 'normas' | 'catalogos' | 'boletines' | 'ai'
       return (<svg {...comun} aria-hidden="true"><path d="M12 2c.7 4.8 3.2 7.3 8 8-4.8.7-7.3 3.2-8 8-.7-4.8-3.2-7.3-8-8 4.8-.7 7.3-3.2 8-8Z" /><path d="M19 3v4M21 5h-4" /></svg>)
     case 'auditoria':
       return (<svg {...comun} aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4a3 3 0 0 1 6 0" /><path d="m9.5 14 2 2 3.5-4" /></svg>)
+    case 'bitacora':
+      return (<svg {...comun} aria-hidden="true"><path d="M12 20h9" /><path d="M6.5 4h9A2.5 2.5 0 0 1 18 6.5v13.5H8.5A2.5 2.5 0 0 1 6 17.5V6a2 2 0 0 1 .5-2Z" /><path d="M9.5 8.5h5M9.5 12h5M9.5 15.5h3" /></svg>)
     case 'perfil':
       return (<svg {...comun} aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5" /></svg>)
     case 'usuarios':

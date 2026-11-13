@@ -257,6 +257,9 @@ public class AuditoriaConfig : IEntityTypeConfiguration<Auditoria>
         b.Property(x => x.Accion).HasColumnName("accion").HasMaxLength(50).IsRequired();
         b.Property(x => x.Antes).HasColumnName("antes");
         b.Property(x => x.Despues).HasColumnName("despues");
+        b.Property(x => x.NormaCodigo).HasColumnName("norma_codigo").HasMaxLength(100);
+        b.Property(x => x.NormaTitulo).HasColumnName("norma_titulo");
+        b.Property(x => x.Texto).HasColumnName("texto");
         b.Property(x => x.Fecha).HasColumnName("fecha");
 
         b.HasIndex(x => new { x.Entidad, x.EntidadId }).HasDatabaseName("ix_auditoria_entidad");

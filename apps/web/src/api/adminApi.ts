@@ -168,6 +168,9 @@ export interface RegistroAuditoria {
   accion: string
   antes: string | null
   despues: string | null
+  normaCodigo: string | null
+  normaTitulo: string | null
+  texto: string | null
   fecha: string
 }
 
@@ -329,4 +332,56 @@ export function agregarFragmento(normaId: string, texto: string, etiqueta?: stri
     method: 'POST',
     body: JSON.stringify({ texto, etiqueta: etiqueta?.trim() || null }),
   })
+}
+
+export interface DocumentoBitacora {
+  id: string | null
+  documentoId: string | null
+  codigo: string | null
+  titulo: string | null
+  estado: string
+  vigencia: string | null
+  visibilidad: string | null
+  ultimaActividad: string
+  ultimoUsuario: string | null
+  eventos: number
+  eliminado: boolean
+}
+
+export interface RegistroBitacora {
+  id: number
+  usuario: string
+  accion: string
+  antes: string | null
+  despues: string | null
+  texto: string | null
+  fecha: string
+  normaCodigo: string | null
+  normaTitulo: string | null
+}
+
+export function bitacoraDocumentos(): Promise<DocumentoBitacora[]> {
+  return pedirAdmin('/admin/bitacora/documentos')
+}
+
+export function bitacoraHistorial(clave: string): Promise<RegistroBitacora[]> {
+  return pedirAdmin(`/admin/bitacora/documentos/${clave}`)
+}
+
+export function anotarBitacora(entidadId: string | null, texto: string): Promise<unknown> {
+  return pedirAdmin('/admin/bitacora/notas', {
+    method: 'POST',
+    body: JSON.stringify({ entidadId, texto }),
+  })
+}
+
+export function editarNotaBitacora(id: number, texto: string): Promise<unknown> {
+  return pedirAdmin(`/admin/bitacora/notas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ texto }),
+  })
+}
+
+export function borrarNotaBitacora(id: number): Promise<unknown> {
+  return pedirAdmin(`/admin/bitacora/notas/${id}`, { method: 'DELETE' })
 }

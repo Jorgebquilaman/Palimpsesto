@@ -93,6 +93,16 @@ public class IngestaService : Application.Ingesta.IIngestaService
         _db.Normas.Add(norma);
         _db.NormasArchivos.Add(archivo);
         _db.ProcesosIngesta.Add(proceso);
+        _db.Auditorias.Add(new Auditoria
+        {
+            Usuario = usuario,
+            Entidad = "norma",
+            EntidadId = norma.Id.ToString(),
+            Accion = "subir_pdf",
+            Despues = nombreOriginal,
+            NormaCodigo = norma.CodigoNormalizado,
+            NormaTitulo = norma.Titulo,
+        });
         await _db.SaveChangesAsync(ct);
 
         if (duplicado)
