@@ -156,15 +156,8 @@ public class BitacoraController : ControllerBase
             })
             .ToListAsync(ct);
 
-        if (filas.Count == 0 && normaId != null)
-        {
-            var existe = await _db.Normas.AsNoTracking().AnyAsync(n => n.Id == normaId.Value, ct);
-            if (!existe)
-            {
-                return Problem(statusCode: 404, detail: "No hay movimientos registrados para este documento");
-            }
-        }
-
+        // Documentos creados antes del log (importaciones, AI) pueden no tener filas; se devuelve la lista vacía
+        // en vez de un 404 para que el panel del historial se abra igual.
         return Ok(filas);
     }
 

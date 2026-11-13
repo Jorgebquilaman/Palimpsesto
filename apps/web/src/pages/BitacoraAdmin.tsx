@@ -16,6 +16,7 @@ import type { DocumentoBitacora, RegistroAuditoria } from '../api/adminApi'
 
 const ETIQUETAS_ACCION: Record<string, string> = {
   subir_pdf: 'Subió el PDF',
+  crear: 'Creó la norma',
   actualizar: 'Editó los datos',
   agregar_texto: 'Agregó texto',
   editar_texto: 'Editó el texto',

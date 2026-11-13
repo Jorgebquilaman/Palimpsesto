@@ -154,6 +154,16 @@ public class ImportacionController : ControllerBase
 
                 _db.Normas.Add(norma);
                 _db.ProcesosIngesta.Add(proceso);
+                _db.Auditorias.Add(new Domain.Entidades.Auditoria
+                {
+                    Usuario = User.Identity?.Name ?? "importador",
+                    Entidad = "norma",
+                    EntidadId = norma.Id.ToString(),
+                    Accion = "subir_pdf",
+                    Despues = fila.Archivo,
+                    NormaCodigo = norma.CodigoNormalizado,
+                    NormaTitulo = norma.Titulo,
+                });
                 normasCreadas.Add(new { fila.Archivo, normaId = norma.Id });
                 subidasOk++;
             }
