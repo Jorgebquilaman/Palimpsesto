@@ -19,8 +19,14 @@ public class BitacoraController : ControllerBase
     }
 
     [HttpGet("documentos")]
-    public async Task<IActionResult> Documentos(CancellationToken ct)
+    public async Task<IActionResult> Documentos(
+        [FromQuery] string? q,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken ct = default)
     {
+        pageSize = Math.Clamp(pageSize, 10, 100);
+        var pagina = Math.Max(1, page);
         var normas = await _db.Normas
             .AsNoTracking()
             .Select(n => new
@@ -110,7 +116,21 @@ public class BitacoraController : ControllerBase
             });
         }
 
-        return Ok(documentos.OrderByDescending(d => d.UltimaActividad).ToList());
+        var filtro = q?.Trim().ToLowerInvariant();
+        var ordenados = documentos
+            .Where(d => filtro is null
+                || (d.Codigo ?? string.Empty).ToLowerInvariant().Contains(filtro)
+                || (d.Titulo ?? string.Empty).ToLowerInvariant().Contains(filtro))
+            .OrderByDescending(d => d.UltimaActividad)
+            .ToList();
+
+        return Ok(new
+        {
+            Total = ordenados.Count,
+            Pagina = pagina,
+            PorPagina = pageSize,
+            Items = ordenados.Skip((pagina - 1) * pageSize).Take(pageSize).ToList(),
+        });
     }
 
     [HttpGet("documentos/{clave}")]

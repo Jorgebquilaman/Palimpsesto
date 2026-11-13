@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useDebounce } from '../components/useDebounce'
 import {
   ETIQUETAS_ESTADO,
   ETIQUETAS_VISIBILIDAD,
@@ -63,17 +64,25 @@ export default function BitacoraAdmin() {
 
 function DocumentosBitacora() {
   const [busqueda, setBusqueda] = useState('')
+  const textoDebounced = useDebounce(busqueda, 300)
+  const [pagina, setPagina] = useState(1)
+  const [porPagina, setPorPagina] = useState(50)
   const [elegido, setElegido] = useState<DocumentoBitacora | null>(null)
-  const { data, isPending, isError, error } = useQuery({
-    queryKey: ['bitacora-documentos'],
-    queryFn: bitacoraDocumentos,
+
+  useEffect(() => {
+    setPagina(1)
+  }, [textoDebounced, porPagina])
+
+  const { data, isPending, isError, error, isFetching } = useQuery({
+    queryKey: ['bitacora-documentos', textoDebounced, pagina, porPagina],
+    queryFn: () => bitacoraDocumentos(textoDebounced.trim() || null, pagina, porPagina),
+    placeholderData: (anterior) => anterior,
     refetchInterval: 60_000,
   })
 
-  const filtro = busqueda.trim().toLowerCase()
-  const documentos = (data ?? []).filter(d =>
-    !filtro || (d.codigo ?? '').toLowerCase().includes(filtro) || (d.titulo ?? '').toLowerCase().includes(filtro),
-  )
+  const documentos = data?.items ?? []
+  const total = data?.total ?? 0
+  const paginas = Math.max(1, Math.ceil(total / porPagina))
 
   return (
     <div className="space-y-4">
@@ -82,7 +91,7 @@ function DocumentosBitacora() {
           <span className="mb-1 block text-xs font-medium text-ink-soft">Buscar por código o título</span>
           <input type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="campo" aria-label="Buscar documento en la bitácora" />
         </label>
-        <p className="text-xs text-ink-faint num-tabulares">{documentos.length} documentos en el registro.</p>
+        <p className="text-xs text-ink-faint num-tabulares">{total} documentos en el registro.</p>
       </div>
 
       {isError && <p role="alert" className="text-derogada-texto">{(error as Error).message}</p>}
@@ -131,6 +140,18 @@ function DocumentosBitacora() {
       )}
 
       {elegido && <HistorialDocumento clave={elegido.documentoId ?? elegido.id} documento={elegido} onCerrar={() => setElegido(null)} />}
+
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button type="button" className="btn-secundario text-xs" disabled={pagina <= 1 || isFetching} onClick={() => setPagina(p => p - 1)}>← Anteriores</button>
+        <span className="num-tabulares text-xs text-ink-soft">Página {pagina} de {paginas}</span>
+        <button type="button" className="btn-secundario text-xs" disabled={pagina >= paginas || isFetching} onClick={() => setPagina(p => p + 1)}>Siguientes →</button>
+        <label className="flex items-center gap-2 text-xs text-ink-faint">
+          por página
+          <select value={String(porPagina)} onChange={(e) => setPorPagina(Number(e.target.value))} className="campo py-1 text-xs" aria-label="Documentos por página">
+            {[50, 100].map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
+      </div>
     </div>
   )
 }
@@ -276,9 +297,10 @@ function HistorialDocumento({ clave, documento, onCerrar }: { clave: string | nu
 
 function MovimientosBitacora() {
   const [pagina, setPagina] = useState(1)
+  const [porPagina, setPorPagina] = useState(100)
   const { data, isPending, isError, error, isFetching } = useQuery({
-    queryKey: ['bitacora-movimientos', pagina],
-    queryFn: () => pedirAdminAuditoria(pagina),
+    queryKey: ['bitacora-movimientos', pagina, porPagina],
+    queryFn: () => pedirAdminAuditoria(pagina, porPagina),
     placeholderData: (anterior) => anterior,
   })
 
@@ -318,15 +340,21 @@ function MovimientosBitacora() {
           </table>
         </div>
       )}
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <button type="button" className="btn-secundario text-xs" disabled={pagina <= 1 || isFetching} onClick={() => setPagina(p => p - 1)}>← Anteriores</button>
         <span className="num-tabulares text-xs text-ink-soft">Página {pagina}</span>
-        <button type="button" className="btn-secundario text-xs" disabled={registros.length < 100 || isFetching} onClick={() => setPagina(p => p + 1)}>Siguientes →</button>
+        <button type="button" className="btn-secundario text-xs" disabled={registros.length < porPagina || isFetching} onClick={() => setPagina(p => p + 1)}>Siguientes →</button>
+        <label className="flex items-center gap-2 text-xs text-ink-faint">
+          por página
+          <select value={String(porPagina)} onChange={(e) => { setPorPagina(Number(e.target.value)); setPagina(1) }} className="campo py-1 text-xs" aria-label="Movimientos por página">
+            {[50, 100].map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
       </div>
     </div>
   )
 }
 
-function pedirAdminAuditoria(pagina: number): Promise<RegistroAuditoria[]> {
-  return pedirAdmin(`/admin/auditoria?page=${pagina}`)
+function pedirAdminAuditoria(pagina: number, porPagina: number): Promise<RegistroAuditoria[]> {
+  return pedirAdmin(`/admin/auditoria?page=${pagina}&pageSize=${porPagina}`)
 }

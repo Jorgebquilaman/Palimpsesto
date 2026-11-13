@@ -360,8 +360,10 @@ export interface RegistroBitacora {
   normaTitulo: string | null
 }
 
-export function bitacoraDocumentos(): Promise<DocumentoBitacora[]> {
-  return pedirAdmin('/admin/bitacora/documentos')
+export function bitacoraDocumentos(q: string | null, page: number, porPagina: number): Promise<{ total: number; pagina: number; porPagina: number; items: DocumentoBitacora[] }> {
+  const sp = new URLSearchParams({ page: String(page), pageSize: String(porPagina) })
+  if (q) sp.set('q', q)
+  return pedirAdmin(`/admin/bitacora/documentos?${sp.toString()}`)
 }
 
 export function bitacoraHistorial(clave: string): Promise<RegistroBitacora[]> {

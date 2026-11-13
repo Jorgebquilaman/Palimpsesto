@@ -20,13 +20,13 @@ public class AdministracionController : ControllerBase
     }
 
     [HttpGet("auditoria")]
-    public async Task<IActionResult> Auditoria([FromQuery] int page = 1, CancellationToken ct = default)
+    public async Task<IActionResult> Auditoria([FromQuery] int page = 1, [FromQuery] int pageSize = 100, CancellationToken ct = default)
     {
         var registros = await _db.Auditorias
             .AsNoTracking()
             .OrderByDescending(a => a.Id)
-            .Skip((Math.Max(1, page) - 1) * 100)
-            .Take(100)
+            .Skip((Math.Max(1, page) - 1) * pageSize)
+            .Take(Math.Clamp(pageSize, 10, 200))
             .Select(a => new
             {
                 a.Id,
